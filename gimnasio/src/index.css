@@ -1,0 +1,125 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Estilos globales para fondo negro con degradado rojo */
+html {
+  height: 100%;
+  background: linear-gradient(135deg, #030712 0%, #000000 35%, #450a0a 70%, #7f1d1d 100%);
+  background-attachment: fixed;
+  background-repeat: no-repeat;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: transparent;
+  color: #f3f4f6;
+}
+
+/* Root container para asegurar cobertura completa */
+#root {
+  min-height: 100vh;
+  background: transparent;
+}
+
+/* Contenedor principal de la aplicación */
+.app-container {
+  min-height: 100vh;
+  background: transparent;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+/* Animación de fade-in existente */
+@keyframes fade-in {
+  0% { opacity: 0; transform: translateY(-10px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out;
+}
+
+/* Estilos adicionales para elementos de la interfaz */
+.glass-effect {
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(75, 85, 99, 0.3);
+}
+
+/* Scrollbar personalizada para toda la aplicación */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(220, 38, 38, 0.7) rgba(17, 24, 39, 0.5);
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: rgba(17, 24, 39, 0.5);
+  border-radius: 10px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: rgba(220, 38, 38, 0.7);
+  border-radius: 10px;
+  border: 1px solid rgba(0, 0, 0, 0.3);
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(220, 38, 38, 0.9);
+}
+
+/* Efectos decorativos de fondo */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    radial-gradient(circle at 20% 20%, rgba(127, 29, 29, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(69, 10, 10, 0.15) 0%, transparent 50%),
+    radial-gradient(circle at 40% 60%, rgba(153, 27, 27, 0.08) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* Asegurar que inputs y selects mantengan el tema */
+input, select, textarea {
+  background-color: rgba(0, 0, 0, 0.6) !important;
+  border-color: rgba(75, 85, 99, 0.5) !important;
+  color: #f3f4f6 !important;
+}
+
+input:focus, select:focus, textarea:focus {
+  border-color: rgba(220, 38, 38, 0.7) !important;
+  box-shadow: 0 0 0 1px rgba(220, 38, 38, 0.3) !important;
+}
+
+/* Placeholder text color */
+input::placeholder, textarea::placeholder {
+  color: rgba(156, 163, 175, 0.7) !important;
+}
+
+/* Mejoras para contraste y legibilidad */
+h1, h2, h3, h4, h5, h6 {
+  color: #f9fafb;
+}
+
+p, span, div {
+  color: #e5e7eb;
+}
