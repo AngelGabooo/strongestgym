@@ -3,6 +3,7 @@ import ClientForm from '../molecules/ClientForm';
 import ClientTable from '../organisms/ClientTable';
 import Modal from '../atoms/Modal';
 import QRCodeDisplay from '../atoms/QRCodeDisplay';
+import CustomAlertModal from '../organisms/CustomAlertModal';
 import { useAuth } from '../contexts/AuthContext';
 import { 
   PlusIcon, 
@@ -18,7 +19,7 @@ import { useClients } from '../hooks/useClients';
 import { format, addMonths, addDays } from 'date-fns';
 
 const Clients = ({ className = '' }) => {
-  const { clients, loading, error, addClient, editClient, removeClient, refreshClients } = useClients();
+  const { clients, loading, error, addClient, editClient, removeClient, refreshClients, findClientByEmail } = useClients();
   const { user } = useAuth();
   const [showQRModal, setShowQRModal] = useState(false);
   const [selectedClient, setSelectedClient] = useState(null);
@@ -26,26 +27,57 @@ const Clients = ({ className = '' }) => {
   const [editingClient, setEditingClient] = useState(null);
   const [showRenewModal, setShowRenewModal] = useState(false);
   const [clientToRenew, setClientToRenew] = useState(null);
+  const [alertConfig, setAlertConfig] = useState({
+    isOpen: false,
+    type: 'info',
+    message: '',
+    actionButton: null,
+  });
+
+  const showAlert = (type, message, actionButton = null) => {
+    setAlertConfig({ isOpen: true, type, message, actionButton });
+  };
+
+  const closeAlert = () => {
+    setAlertConfig({ ...alertConfig, isOpen: false });
+  };
 
   const handleSaveClient = async (clientData) => {
     try {
       if (editingClient) {
-        await editClient(editingClient.id, clientData);
-        alert('Cliente actualizado exitosamente');
+        const updatedClient = await editClient(editingClient.id, clientData);
+        showAlert('success', 'Cliente actualizado exitosamente');
       } else {
-        await addClient(clientData);
+        const newClient = await addClient(clientData);
+        showAlert('success', 'Cliente registrado exitosamente');
       }
       setShowForm(false);
+      setEditingClient(null);
     } catch (err) {
-      alert(`Error al guardar cliente: ${err.message}`);
+      showAlert('error', `Error al guardar cliente: ${err.message}`);
     }
   };
 
   const handleEditClient = async (client) => {
-    await refreshClients(); // Refrescar datos para evitar IDs inválidos
-    console.log('Editando cliente con ID:', client.id);
-    setEditingClient(clients.find(c => c.id === client.id) || client);
-    setShowForm(true);
+    try {
+      console.log('Intentando editar cliente con ID:', client.id);
+      await refreshClients();
+      // Verificar si el cliente existe en Firestore
+      const clientFromFirestore = await findClientByEmail(client.email);
+      if (!clientFromFirestore || clientFromFirestore.id !== client.id) {
+        throw new Error(`El cliente con ID ${client.id} no existe en Firestore o no coincide con el email ${client.email}`);
+      }
+      const updatedClient = clients.find(c => c.id === client.id) || clientFromFirestore;
+      if (!updatedClient) {
+        throw new Error('Cliente no encontrado en la lista local después de recargar');
+      }
+      console.log('Cliente seleccionado para editar:', updatedClient);
+      setEditingClient(updatedClient);
+      setShowForm(true);
+    } catch (err) {
+      console.error('Error en handleEditClient:', err.message);
+      showAlert('error', `Error al preparar cliente para edición: ${err.message}`);
+    }
   };
 
   const handleViewQR = (client) => {
@@ -55,11 +87,12 @@ const Clients = ({ className = '' }) => {
 
   const handleDeleteClient = async (clientId) => {
     try {
-      await refreshClients(); // Refrescar datos para evitar IDs inválidos
+      console.log('Eliminando cliente con ID:', clientId);
+      await refreshClients();
       await removeClient(clientId);
-      alert('Cliente eliminado exitosamente');
+      showAlert('success', 'Cliente eliminado exitosamente');
     } catch (err) {
-      alert(`Error al eliminar cliente: ${err.message}`);
+      showAlert('error', `Error al eliminar cliente: ${err.message}`);
     }
   };
 
@@ -88,9 +121,9 @@ const Clients = ({ className = '' }) => {
       await editClient(clientToRenew.id, updatedClient);
       setShowRenewModal(false);
       setClientToRenew(null);
-      alert('Suscripción renovada exitosamente');
+      showAlert('success', 'Suscripción renovada exitosamente');
     } catch (err) {
-      alert(`Error al renovar la suscripción: ${err.message}`);
+      showAlert('error', `Error al renovar la suscripción: ${err.message}`);
     }
   };
 
@@ -102,9 +135,9 @@ const Clients = ({ className = '' }) => {
   const handleRefreshClients = async () => {
     try {
       await refreshClients();
-      alert('Lista de clientes recargada');
+      showAlert('success', 'Lista de clientes recargada');
     } catch (err) {
-      alert(`Error al recargar clientes: ${err.message}`);
+      showAlert('error', `Error al recargar clientes: ${err.message}`);
     }
   };
 
@@ -243,7 +276,10 @@ const Clients = ({ className = '' }) => {
                 <ClientForm 
                   onSave={handleSaveClient} 
                   initialData={editingClient}
-                  onCancel={() => setShowForm(false)}
+                  onCancel={() => {
+                    setShowForm(false);
+                    setEditingClient(null);
+                  }}
                 />
               </div>
             </div>
@@ -316,6 +352,7 @@ const Clients = ({ className = '' }) => {
                   withDownload={true}
                   withWhatsApp={true}
                   clientName={selectedClient.name}
+                  onShowAlert={showAlert}
                 />
               </div>
             </div>
@@ -361,6 +398,14 @@ const Clients = ({ className = '' }) => {
           </div>
         </div>
       </Modal>
+
+      <CustomAlertModal
+        isOpen={alertConfig.isOpen}
+        onClose={closeAlert}
+        type={alertConfig.type}
+        message={alertConfig.message}
+        actionButton={alertConfig.actionButton}
+      />
     </main> 
   );  
 };

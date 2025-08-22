@@ -7,11 +7,9 @@ import {
   EnvelopeIcon, 
   CalendarIcon, 
   CurrencyDollarIcon,
-  CheckCircleIcon,
   ExclamationTriangleIcon
 } from '@heroicons/react/24/outline';
 import { useClients } from '../hooks/useClients';
-import QRCodeDisplay from '../atoms/QRCodeDisplay';
 
 const ClientForm = ({ onSave, initialData = null, onCancel, className = '' }) => {
   const { addClient, editClient, findClientByEmail } = useClients();
@@ -27,8 +25,6 @@ const ClientForm = ({ onSave, initialData = null, onCancel, className = '' }) =>
   });
   
   const [errors, setErrors] = useState({});
-  const [successMessage, setSuccessMessage] = useState('');
-  const [savedClient, setSavedClient] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -119,7 +115,6 @@ const ClientForm = ({ onSave, initialData = null, onCancel, className = '' }) =>
     e.preventDefault();
     setIsSubmitting(true);
     setErrors({});
-    setSuccessMessage('');
     
     const validationErrors = validate();
     if (Object.keys(validationErrors).length > 0) {
@@ -148,19 +143,18 @@ const ClientForm = ({ onSave, initialData = null, onCancel, className = '' }) =>
       
       let savedClient;
       if (initialData?.id) {
+        // Check if the email is unchanged or belongs to the same client
+        const existingClient = await findClientByEmail(clientData.email);
+        if (existingClient && existingClient.id !== initialData.id) {
+          throw new Error('El email ya está registrado por otro cliente');
+        }
         savedClient = await editClient(initialData.id, clientData);
       } else {
-        // Verificar si el email ya existe
-        const existingClient = await findClientByEmail(clientData.email);
-        if (existingClient && existingClient.id !== initialData?.id) {
-          throw new Error('El email ya está registrado. Usa un email único.');
-        }
         savedClient = await addClient(clientData);
       }
       
-      setSuccessMessage(initialData ? 'Cliente actualizado exitosamente' : 'Cliente registrado exitosamente');
-      setSavedClient(savedClient);
       onSave(savedClient);
+      setIsSubmitting(false);
       
       if (!initialData) {
         setFormData({
@@ -180,58 +174,12 @@ const ClientForm = ({ onSave, initialData = null, onCancel, className = '' }) =>
       setErrors({ 
         form: error.message || 'Error al registrar el cliente. Por favor, intenta de nuevo.' 
       });
-    } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
     <div className={`${className}`}>
-      {successMessage && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/70 backdrop-blur-sm">
-          <div className="bg-black/60 backdrop-blur-xl border border-gray-700/50 rounded-2xl p-8 max-w-md w-full mx-4 transform transition-all duration-300 scale-100">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-gradient-to-r from-green-600 to-green-700 rounded-full flex items-center justify-center mx-auto mb-4">
-                <CheckCircleIcon className="w-8 h-8 text-white" />
-              </div>
-              <h3 className="text-xl font-bold text-white mb-2">¡Éxito!</h3>
-              <p className="text-gray-300 mb-4">{successMessage}</p>
-              {!initialData && savedClient && (
-                <div className="space-y-4">
-                  <div>
-                    <p className="text-gray-300 font-semibold">Código QR:</p>
-                    <div className="bg-white p-4 rounded-xl mx-auto w-48">
-                      <QRCodeDisplay 
-                        value={JSON.stringify({ qrCode: savedClient.qrCode, pin: savedClient.pin })} 
-                        size={160}
-                        withDownload={true}
-                        withWhatsApp={true}
-                        clientName={savedClient.name}
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <p className="text-gray-300 font-semibold">PIN Único:</p>
-                    <p className="text-white text-2xl font-bold bg-gray-900/50 rounded-lg p-2 inline-block">
-                      {savedClient.pin}
-                    </p>
-                  </div>
-                </div>
-              )}
-              <button
-                className="w-full px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-xl hover:from-green-700 hover:to-green-800 transition-all duration-200 font-medium mt-6"
-                onClick={() => {
-                  setSuccessMessage('');
-                  setSavedClient(null);
-                }}
-              >
-                Continuar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-      
       <form onSubmit={handleSubmit} noValidate className="space-y-6">
         <div className="bg-gray-900/30 backdrop-blur-sm rounded-2xl p-6 border border-gray-700/30">
           <h3 className="text-lg font-semibold text-white flex items-center mb-4">
@@ -514,4 +462,4 @@ ClientForm.propTypes = {
   className: PropTypes.string,
 };
 
-export default ClientForm
+export default ClientForm;

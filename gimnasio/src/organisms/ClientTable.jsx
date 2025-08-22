@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -11,25 +11,38 @@ import {
   ArrowPathIcon,
   CalendarDaysIcon,
   CreditCardIcon,
-  HashtagIcon
+  HashtagIcon,
+  PhoneIcon
 } from '@heroicons/react/24/outline';
 import { UserCircleIcon } from "@heroicons/react/24/outline";
-
 
 const ClientTable = ({ clients, onViewQR, onEdit, onDelete, onRenew, className = '' }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filter, setFilter] = useState('all');
 
+  useEffect(() => {
+    console.log('Clientes recibidos en ClientTable:', clients);
+    const idCount = clients.reduce((acc, client) => {
+      acc[client.id] = (acc[client.id] || 0) + 1;
+      return acc;
+    }, {});
+    console.log('Conteo de IDs en ClientTable:', idCount);
+  }, [clients]);
+
   const filteredClients = clients.filter((client) => {
     const matchesSearch =
       client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      client.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      client.phone.toLowerCase().includes(searchTerm.toLowerCase()) ||
       client.pin.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesFilter =
       filter === 'all' ||
       client.status === filter;
     return matchesSearch && matchesFilter;
   });
+
+  useEffect(() => {
+    console.log('Clientes filtrados:', filteredClients);
+  }, [filteredClients]);
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -63,7 +76,7 @@ const ClientTable = ({ clients, onViewQR, onEdit, onDelete, onRenew, className =
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Buscar por nombre, email o PIN..."
+              placeholder="Buscar por nombre, teléfono o PIN..."
               className="w-full pl-12 pr-4 py-4 bg-gray-900/50 border border-gray-700/50 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200 text-base sm:text-lg"
             />
           </div>
@@ -136,12 +149,10 @@ const ClientTable = ({ clients, onViewQR, onEdit, onDelete, onRenew, className =
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-800/30">
-                {filteredClients.map((client, index) => (
+                {filteredClients.map((client) => (
                   <tr 
                     key={client.id} 
-                    className={`transition-all duration-200 hover:bg-gray-900/20 ${
-                      index % 2 === 0 ? 'bg-gray-900/10' : 'bg-transparent'
-                    }`}
+                    className="transition-all duration-200 hover:bg-gray-900/20"
                   >
                     <td className="px-6 py-4">
                       <div className="flex items-center space-x-4">
@@ -152,7 +163,10 @@ const ClientTable = ({ clients, onViewQR, onEdit, onDelete, onRenew, className =
                         </div>
                         <div>
                           <div className="text-base font-semibold text-white">{client.name}</div>
-                          <div className="text-sm text-gray-400">{client.email}</div>
+                          <div className="text-sm text-gray-400 flex items-center">
+                            <PhoneIcon className="w-4 h-4 mr-1" />
+                            {client.phone}
+                          </div>
                         </div>
                       </div>
                     </td>
@@ -246,10 +260,10 @@ const ClientTable = ({ clients, onViewQR, onEdit, onDelete, onRenew, className =
             </table>
 
             <div className="sm:hidden space-y-4 p-4">
-              {filteredClients.map((client, index) => (
+              {filteredClients.map((client) => (
                 <div 
                   key={client.id}
-                  className={`bg-gray-900/10 rounded-xl p-4 border border-gray-800/50 transition-all duration-200 hover:bg-gray-900/20`}
+                  className="bg-gray-900/10 rounded-xl p-4 border border-gray-800/50 transition-all duration-200 hover:bg-gray-900/20"
                 >
                   <div className="flex items-start space-x-4">
                     <div className="flex-shrink-0">
@@ -259,7 +273,10 @@ const ClientTable = ({ clients, onViewQR, onEdit, onDelete, onRenew, className =
                     </div>
                     <div className="flex-1">
                       <div className="text-lg font-semibold text-white">{client.name}</div>
-                      <div className="text-base text-gray-400">{client.email}</div>
+                      <div className="text-base text-gray-400 flex items-center">
+                        <PhoneIcon className="w-4 h-4 mr-1" />
+                        {client.phone}
+                      </div>
                       <div className="flex items-center space-x-2 mt-2">
                         <HashtagIcon className="w-5 h-5 text-gray-400" />
                         <span className="text-base text-gray-300">{client.pin}</span>

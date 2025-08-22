@@ -3,7 +3,7 @@ import { QRCodeSVG, QRCodeCanvas } from 'qrcode.react';
 import { useRef, useMemo } from 'react';
 import { ArrowDownTrayIcon, ShareIcon, QrCodeIcon } from '@heroicons/react/24/outline';
 
-const QRCodeDisplay = ({ value, size = 200, className = '', withDownload = false, withWhatsApp = false, clientName = '', colorScheme = 'auto', ...props }) => {
+const QRCodeDisplay = ({ value, size = 200, className = '', withDownload = false, withWhatsApp = false, clientName = '', colorScheme = 'auto', onShowAlert, ...props }) => {
   const qrRef = useRef(null);
   
   if (!value) return null;
@@ -37,7 +37,10 @@ const QRCodeDisplay = ({ value, size = 200, className = '', withDownload = false
     
     if (format === 'svg') {
       const svg = qrRef.current.querySelector('svg');
-      if (!svg) return;
+      if (!svg) {
+        onShowAlert?.('error', 'Error al generar el código QR en formato SVG');
+        return;
+      }
       
       const svgData = new XMLSerializer().serializeToString(svg);
       const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
@@ -50,9 +53,14 @@ const QRCodeDisplay = ({ value, size = 200, className = '', withDownload = false
       downloadLink.click();
       document.body.removeChild(downloadLink);
       URL.revokeObjectURL(svgUrl);
+
+      onShowAlert?.('success', `Código QR de ${clientName || 'Cliente'} descargado en formato SVG (${selectedColorScheme.name})`);
     } else {
       const canvas = qrRef.current.querySelector('canvas');
-      if (!canvas) return;
+      if (!canvas) {
+        onShowAlert?.('error', 'Error al generar el código QR en formato PNG');
+        return;
+      }
       
       // Crear canvas de alta resolución
       const highResCanvas = document.createElement('canvas');
@@ -81,6 +89,8 @@ const QRCodeDisplay = ({ value, size = 200, className = '', withDownload = false
       document.body.appendChild(downloadLink);
       downloadLink.click();
       document.body.removeChild(downloadLink);
+
+      onShowAlert?.('success', `Código QR de ${clientName || 'Cliente'} descargado en formato PNG HD (${selectedColorScheme.name})`);
     }
   };
 
@@ -88,7 +98,7 @@ const QRCodeDisplay = ({ value, size = 200, className = '', withDownload = false
     const phoneNumber = "528144384806";
     const clientNameFormatted = clientName || "Cliente";
     
-    // Mensaje de texto que se enviará primero
+    // Mensaje de texto que se enviará
     const message = `¡Hola ${clientNameFormatted}! 
 
 Te comparto tu QR para que des asistencia al ingresar al gimnasio.
@@ -101,7 +111,10 @@ Así como contar con una toalla para limpiar dónde has estado.
     
     try {
       const originalCanvas = qrRef.current.querySelector('canvas');
-      if (!originalCanvas) return;
+      if (!originalCanvas) {
+        onShowAlert?.('error', 'Error al generar el código QR para compartir por WhatsApp');
+        return;
+      }
       
       // Crear canvas de máxima resolución para WhatsApp
       const combinedCanvas = document.createElement('canvas');
@@ -198,7 +211,10 @@ Así como contar con una toalla para limpiar dónde has estado.
               // SEGUNDO: Esperar un momento y luego enviar el texto
               setTimeout(() => {
                 window.open(whatsappTextUrl, '_blank');
-                alert('✅ Imagen QR enviada\n📝 Ahora se abre WhatsApp para enviar el mensaje de texto');
+                onShowAlert?.('whatsapp', `Código QR de ${clientNameFormatted} enviado por WhatsApp (${selectedColorScheme.name})`, {
+                  label: 'Abrir WhatsApp',
+                  onClick: () => window.open(whatsappTextUrl, '_blank')
+                });
               }, 1500);
               
             } catch (shareError) {
@@ -215,14 +231,10 @@ Así como contar con una toalla para limpiar dónde has estado.
               
               setTimeout(() => {
                 window.open(whatsappTextUrl, '_blank');
-                alert(`
-📱 Imagen HD descargada
-✅ WhatsApp abierto
-
-📋 PASOS A SEGUIR:
-1. Adjunta PRIMERO la imagen descargada en WhatsApp
-2. Después envía el mensaje de texto que aparece
-                `);
+                onShowAlert?.('whatsapp', `Código QR de ${clientNameFormatted} descargado y WhatsApp abierto (${selectedColorScheme.name})`, {
+                  label: 'Abrir WhatsApp',
+                  onClick: () => window.open(whatsappTextUrl, '_blank')
+                });
               }, 1000);
             }
           } else {
@@ -239,15 +251,10 @@ Así como contar con una toalla para limpiar dónde has estado.
               document.body.removeChild(downloadLink);
               setTimeout(() => URL.revokeObjectURL(imageUrl), 100);
               
-              alert(`
-✅ WhatsApp abierto con el mensaje de texto.
-📱 Imagen HD descargada automáticamente.
-
-📋 INSTRUCCIONES:
-1. Envía primero el mensaje de texto que aparece en WhatsApp
-2. Luego adjunta la imagen descargada como un segundo mensaje
-3. La imagen tiene calidad HD y color ${selectedColorScheme.name}
-              `);
+              onShowAlert?.('whatsapp', `Código QR de ${clientNameFormatted} descargado y WhatsApp abierto (${selectedColorScheme.name})`, {
+                label: 'Abrir WhatsApp',
+                onClick: () => window.open(whatsappTextUrl, '_blank')
+              });
             }, 1000);
           }
         }
@@ -259,12 +266,7 @@ Así como contar con una toalla para limpiar dónde has estado.
       const encodedMessage = encodeURIComponent(message);
       const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodedMessage}`;
       window.open(whatsappUrl, '_blank');
-      alert(`
-❌ Error al procesar la imagen automáticamente.
-✅ WhatsApp abierto con el mensaje de texto.
-
-Por favor, genera el QR nuevamente e intenta la descarga manual.
-      `);
+      onShowAlert?.('error', `Error al compartir el código QR de ${clientNameFormatted} por WhatsApp: ${error.message}`);
     }
   };
 
@@ -363,6 +365,7 @@ QRCodeDisplay.propTypes = {
   withWhatsApp: PropTypes.bool,
   clientName: PropTypes.string,
   colorScheme: PropTypes.oneOf(['auto', 'azul', 'naranja', 'verde', 'rojo', 'púrpura', 'gris', 'amarillo', 'rosa']),
+  onShowAlert: PropTypes.func
 };
 
 export default QRCodeDisplay;

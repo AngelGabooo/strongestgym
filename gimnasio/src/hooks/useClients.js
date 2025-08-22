@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { collection, addDoc, getDocs, updateDoc, deleteDoc, doc, query, where, orderBy, getDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { calculateExpirationDate, calculateSubscriptionStatus, getLocalTimestamp } from '../utils/helpers';
+
 export const useClients = () => {
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -11,14 +12,26 @@ export const useClients = () => {
     try {
       setLoading(true);
       const clientsRef = collection(db, 'clients');
-      const snapshot = await getDocs(clientsRef);
+      const snapshot = await getDocs(clientsRef, { source: 'server' });
       const data = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data(),
         status: calculateSubscriptionStatus(doc.data().expirationDate),
       }));
-      console.log('Clientes cargados:', data); // Log para depuración
-      setClients(data);
+      
+      // Eliminar duplicados basados en id
+      const uniqueData = Array.from(
+        new Map(data.map(client => [client.id, client])).values()
+      );
+      
+      console.log('Clientes cargados:', uniqueData);
+      const idCount = data.reduce((acc, client) => {
+        acc[client.id] = (acc[client.id] || 0) + 1;
+        return acc;
+      }, {});
+      console.log('Conteo de IDs:', idCount);
+      
+      setClients(uniqueData);
       setError(null);
     } catch (err) {
       console.error('Error en fetchClients:', err.code, err.message);
@@ -43,13 +56,15 @@ export const useClients = () => {
       const newClient = {
         ...clientData,
         pin,
-        qrCode: `QR-${pin}`, // Usar pin para el qrCode para unicidad
+        qrCode: `QR-${pin}`,
         expirationDate,
         status: calculateSubscriptionStatus(expirationDate),
       };
       const docRef = await addDoc(collection(db, 'clients'), newClient);
+      // Esperar un pequeño retraso antes de recargar los clientes
+      await new Promise(resolve => setTimeout(resolve, 1000));
       await fetchClients();
-      return { ...newClient, id: docRef.id }; // Usar docRef.id como ID oficial
+      return { ...newClient, id: docRef.id };
     } catch (err) {
       console.error('Error en addClient:', err.code, err.message);
       throw new Error(`Error al registrar el cliente: ${err.message}`);
@@ -58,16 +73,25 @@ export const useClients = () => {
 
   const editClient = async (id, clientData) => {
     try {
-      const clientRef = doc(db, 'clients', id);
-      // Verificar si el documento existe en Firestore
-      const clientDoc = await getDoc(clientRef);
+      console.log('Intentando editar cliente con ID:', id, 'Datos:', clientData);
+      let clientRef = doc(db, 'clients', id);
+      let clientDoc = await getDoc(clientRef, { source: 'server' });
       if (!clientDoc.exists()) {
-        throw new Error(`No se encontró el documento del cliente con ID: ${id}`);
+        const q = query(collection(db, 'clients'), where('id', '==', id));
+        const snapshot = await getDocs(q, { source: 'server' });
+        if (snapshot.empty) {
+          throw new Error(`No se encontró el documento del cliente con ID: ${id}`);
+        }
+        clientRef = doc(db, 'clients', snapshot.docs[0].id);
+        clientDoc = snapshot.docs[0];
+        console.log('Cliente encontrado usando customId:', id, 'ID de Firestore:', snapshot.docs[0].id);
       }
+
       const existingClient = clients.find(client => client.id === id);
       if (!existingClient) {
-        throw new Error('Cliente no encontrado en la lista local');
+        console.warn('Cliente no encontrado en la lista local, usando datos de Firestore');
       }
+      
       const expirationDate = calculateExpirationDate(
         clientData.paymentDate,
         clientData.subscriptionType,
@@ -75,14 +99,15 @@ export const useClients = () => {
       );
       const updatedClient = {
         ...clientData,
-        id: existingClient.id,
-        pin: existingClient.pin,
-        qrCode: existingClient.qrCode,
+        id: clientDoc.id,
+        pin: existingClient?.pin || clientDoc.data().pin,
+        qrCode: existingClient?.qrCode || clientDoc.data().qrCode,
         expirationDate,
         status: calculateSubscriptionStatus(expirationDate),
       };
       await updateDoc(clientRef, updatedClient);
       await fetchClients();
+      console.log('Cliente actualizado:', updatedClient);
       return updatedClient;
     } catch (err) {
       console.error('Error en editClient:', err.code, err.message);
@@ -92,13 +117,22 @@ export const useClients = () => {
 
   const removeClient = async (id) => {
     try {
+      console.log('Intentando eliminar cliente con ID:', id);
       const clientRef = doc(db, 'clients', id);
-      // Verificar si el documento existe
-      const clientDoc = await getDoc(clientRef);
+      const clientDoc = await getDoc(clientRef, { source: 'server' });
       if (!clientDoc.exists()) {
-        throw new Error(`No se encontró el documento del cliente con ID: ${id}`);
+        const q = query(collection(db, 'clients'), where('id', '==', id));
+        const snapshot = await getDocs(q, { source: 'server' });
+        if (snapshot.empty) {
+          throw new Error(`No se encontró el documento del cliente con ID: ${id}`);
+        }
+        const docRef = doc(db, 'clients', snapshot.docs[0].id);
+        await deleteDoc(docRef);
+        console.log('Cliente eliminado usando customId:', id);
+      } else {
+        await deleteDoc(clientRef);
+        console.log('Cliente eliminado con ID de Firestore:', id);
       }
-      await deleteDoc(clientRef);
       await fetchClients();
     } catch (err) {
       console.error('Error en removeClient:', err.code, err.message);
@@ -150,7 +184,7 @@ export const useClients = () => {
         where('timestamp', '<', tomorrow.toISOString()),
         orderBy('timestamp', 'desc')
       );
-      const snapshot = await getDocs(q);
+      const snapshot = await getDocs(q, { source: 'server' });
       return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     } catch (err) {
       console.error('Error en getTodayAccessRecords:', err.code, err.message);
@@ -161,7 +195,7 @@ export const useClients = () => {
   const fetchAccessHistory = async (clientEmail = null) => {
     try {
       const historyRef = collection(db, 'accessHistory');
-      const snapshot = await getDocs(historyRef);
+      const snapshot = await getDocs(historyRef, { source: 'server' });
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       if (clientEmail) {
         return data.filter(entry => entry.clientEmail === clientEmail);
@@ -176,8 +210,8 @@ export const useClients = () => {
   const findClientByEmail = async (email) => {
     try {
       const clientsRef = collection(db, 'clients');
-      const q = query(clientsRef, where('email', '==', email));
-      const snapshot = await getDocs(q);
+      const q = query(clientsRef, where('email', '==', email.trim()));
+      const snapshot = await getDocs(q, { source: 'server' });
       if (!snapshot.empty) {
         const doc = snapshot.docs[0];
         return { id: doc.id, ...doc.data(), status: calculateSubscriptionStatus(doc.data().expirationDate) };
