@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
+import { db } from '../firebase'; // Asegúrate de que esta sea la ruta correcta a tu configuración de Firebase
+import { collection, onSnapshot, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
 import SubscriptionStatus from '../molecules/SubscriptionStatus';
 import PropTypes from 'prop-types';
 import { calculateSubscriptionStatus } from '../utils/helpers';
 import { ArrowLeftIcon, ArrowRightIcon } from '@heroicons/react/24/outline';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, startOfDay, endOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 const Dashboard = ({ className = '' }) => {
@@ -14,29 +16,45 @@ const Dashboard = ({ className = '' }) => {
     activeEntries: '0',
     expiringEntries: '0',
     activeExits: '0',
-    expiringExits: '0'
+    expiringExits: '0',
   });
   const [recentAccess, setRecentAccess] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const fetchData = () => {
+  const fetchData = async () => {
     try {
-      // Clientes locales
-      const storedClients = localStorage.getItem('clients');
-      const clients = storedClients ? JSON.parse(storedClients) : [];
-      const activeClients = clients.filter(c => calculateSubscriptionStatus(c.expirationDate) === 'active').length;
-      const expiringSubscriptions = clients.filter(c => calculateSubscriptionStatus(c.expirationDate) === 'expiring').length;
+      // Obtener clientes de Firestore
+      const clientsSnapshot = await getDocs(collection(db, 'clients'));
+      const clients = clientsSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        status: calculateSubscriptionStatus(doc.data().expirationDate),
+      }));
 
-      // Historial locales
-      const storedHistory = localStorage.getItem('accessHistory');
-      const history = storedHistory ? JSON.parse(storedHistory) : [];
+      const activeClients = clients.filter(c => c.status === 'active').length;
+      const expiringSubscriptions = clients.filter(c => c.status === 'expiring').length;
+
+      // Obtener accesos de hoy
       const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const todaysHistory = history.filter(h => {
-        const entryDate = new Date(h.timestamp);
-        return entryDate.toDateString() === today.toDateString() && h.client?.status !== 'expired';
-      });
+      const startOfToday = startOfDay(today);
+      const endOfToday = endOfDay(today);
+
+      const accessQuery = query(
+        collection(db, 'accessHistory'),
+        where('timestamp', '>=', startOfToday.toISOString()),
+        where('timestamp', '<=', endOfToday.toISOString())
+      );
+      const accessSnapshot = await getDocs(accessQuery);
+      const todaysHistory = accessSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        client: {
+          ...doc.data().client,
+          status: calculateSubscriptionStatus(doc.data().client.expirationDate),
+        },
+      }));
+
       const todaysAccess = todaysHistory.length;
       const activeEntries = todaysHistory.filter(h => h.type === 'entry' && h.client?.status === 'active').length;
       const expiringEntries = todaysHistory.filter(h => h.type === 'entry' && h.client?.status === 'expiring').length;
@@ -50,32 +68,118 @@ const Dashboard = ({ className = '' }) => {
         activeEntries: activeEntries.toString(),
         expiringEntries: expiringEntries.toString(),
         activeExits: activeExits.toString(),
-        expiringExits: expiringExits.toString()
+        expiringExits: expiringExits.toString(),
       });
 
-      // Ordenar accesos por timestamp de más reciente a más antiguo
-      const sortedRecentAccess = history
-        .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
-        .slice(0, 5); // Mostrar los últimos 5 accesos
+      // Obtener los últimos 5 accesos recientes
+      const recentAccessQuery = query(
+        collection(db, 'accessHistory'),
+        orderBy('timestamp', 'desc'),
+        limit(5)
+      );
+      const recentAccessSnapshot = await getDocs(recentAccessQuery);
+      const sortedRecentAccess = recentAccessSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        client: {
+          ...doc.data().client,
+          status: calculateSubscriptionStatus(doc.data().client.expirationDate),
+        },
+      }));
 
       setRecentAccess(sortedRecentAccess);
     } catch (err) {
       setError(err.message);
+      console.error('Error al obtener datos:', err);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
+    // Configurar listener en tiempo real para accessHistory
+    const accessQuery = query(
+      collection(db, 'accessHistory'),
+      orderBy('timestamp', 'desc'),
+      limit(5)
+    );
+
+    const unsubscribeAccess = onSnapshot(accessQuery, (snapshot) => {
+      const updatedAccess = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        client: {
+          ...doc.data().client,
+          status: calculateSubscriptionStatus(doc.data().client.expirationDate),
+        },
+      }));
+      setRecentAccess(updatedAccess);
+
+      // Actualizar estadísticas de accesos de hoy
+      const today = new Date();
+      const startOfToday = startOfDay(today);
+      const endOfToday = endOfDay(today);
+
+      const todaysAccessQuery = query(
+        collection(db, 'accessHistory'),
+        where('timestamp', '>=', startOfToday.toISOString()),
+        where('timestamp', '<=', endOfToday.toISOString())
+      );
+
+      onSnapshot(todaysAccessQuery, (todaysSnapshot) => {
+        const todaysHistory = todaysSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+          client: {
+            ...doc.data().client,
+            status: calculateSubscriptionStatus(doc.data().client.expirationDate),
+          },
+        }));
+
+        const todaysAccess = todaysHistory.length;
+        const activeEntries = todaysHistory.filter(h => h.type === 'entry' && h.client?.status === 'active').length;
+        const expiringEntries = todaysHistory.filter(h => h.type === 'entry' && h.client?.status === 'expiring').length;
+        const activeExits = todaysHistory.filter(h => h.type === 'exit' && h.client?.status === 'active').length;
+        const expiringExits = todaysHistory.filter(h => h.type === 'exit' && h.client?.status === 'expiring').length;
+
+        setStats(prev => ({
+          ...prev,
+          todaysAccess: todaysAccess.toString(),
+          activeEntries: activeEntries.toString(),
+          expiringEntries: expiringEntries.toString(),
+          activeExits: activeExits.toString(),
+          expiringExits: expiringExits.toString(),
+        }));
+      });
+
+      // Actualizar estadísticas de clientes
+      onSnapshot(collection(db, 'clients'), (clientsSnapshot) => {
+        const clients = clientsSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+          status: calculateSubscriptionStatus(doc.data().expirationDate),
+        }));
+
+        const activeClients = clients.filter(c => c.status === 'active').length;
+        const expiringSubscriptions = clients.filter(c => c.status === 'expiring').length;
+
+        setStats(prev => ({
+          ...prev,
+          activeClients: activeClients.toString(),
+          expiringSubscriptions: expiringSubscriptions.toString(),
+        }));
+      });
+    }, (err) => {
+      setError(err.message);
+      console.error('Error en el listener de Firestore:', err);
+    });
+
+    // Cargar datos iniciales
     fetchData();
-    
-    // Actualizar datos cada 30 segundos para tiempo real
-    const interval = setInterval(fetchData, 30000);
-    
-    window.addEventListener('storage', fetchData);
+
+    // Limpiar listeners al desmontar
     return () => {
-      window.removeEventListener('storage', fetchData);
-      clearInterval(interval);
+      unsubscribeAccess();
     };
   }, []);
 
@@ -87,7 +191,7 @@ const Dashboard = ({ className = '' }) => {
       </div>
     </div>
   );
-  
+
   if (error) return (
     <div className="min-h-screen flex items-center justify-center">
       <div className="bg-red-950/80 backdrop-blur-xl border border-red-800/50 rounded-2xl p-6 text-center shadow-2xl">
@@ -104,7 +208,7 @@ const Dashboard = ({ className = '' }) => {
     const now = new Date();
     const accessTime = new Date(timestamp);
     const diffInMinutes = Math.floor((now - accessTime) / (1000 * 60));
-    
+
     if (diffInMinutes < 1) return 'Ahora mismo';
     if (diffInMinutes < 60) return `Hace ${diffInMinutes} min`;
     if (diffInMinutes < 1440) return `Hace ${Math.floor(diffInMinutes / 60)} hrs`;
@@ -138,7 +242,7 @@ const Dashboard = ({ className = '' }) => {
             </div>
           </div>
         </div>
-        
+
         {/* Tarjetas de estadísticas */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
           {/* Clientes Activos */}
@@ -198,7 +302,7 @@ const Dashboard = ({ className = '' }) => {
               </div>
               <div className="w-10 sm:w-12 h-10 sm:h-12 bg-gradient-to-r from-yellow-600 to-yellow-700 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-200 shadow-lg">
                 <svg className="h-5 sm:h-6 w-5 sm:w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
               </div>
             </div>
@@ -272,7 +376,7 @@ const Dashboard = ({ className = '' }) => {
             </div>
           </div>
         </div>
-        
+
         {/* Sección de accesos recientes - TABLA */}
         <div className="bg-gradient-to-br from-gray-950/90 to-red-950/20 backdrop-blur-xl border border-gray-800/50 rounded-2xl p-4 sm:p-6 shadow-2xl hover:border-red-700/50 transition-all duration-300">
           <div className="flex items-center justify-between mb-4 sm:mb-6">
@@ -317,7 +421,7 @@ const Dashboard = ({ className = '' }) => {
                         <div className="text-sm text-gray-300">{access.clientEmail}</div>
                       </td>
                       <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                        {format(parseISO(access.timestamp), 'dd/MM/yyyy HH:mm:ss', { locale: es })}
+                        <div>{format(parseISO(access.timestamp), 'dd/MM/yyyy HH:mm:ss', { locale: es })}</div>
                         <div className="text-xs text-gray-400">{getRelativeTime(access.timestamp)}</div>
                       </td>
                       <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
@@ -328,11 +432,22 @@ const Dashboard = ({ className = '' }) => {
                               : 'bg-blue-900/30 text-blue-400 border-blue-700/40'
                           }`}
                         >
-                          {access.type === 'entry' ? 'Entrada' : `Salida${access.activeTime ? ` (${access.activeTime} min)` : ''}`}
+                          {access.type === 'entry' ? 'Entrada' : 'Salida'}
                         </span>
                       </td>
                       <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
-                        <SubscriptionStatus status={access.client?.status || 'active'} />
+                        <span
+                          className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full border ${
+                            access.client?.status === 'active'
+                              ? 'bg-green-900/30 text-green-400 border-green-700/40'
+                              : access.client?.status === 'expiring'
+                              ? 'bg-yellow-900/30 text-yellow-400 border-yellow-700/40'
+                              : 'bg-red-900/30 text-red-400 border-red-700/40'
+                          }`}
+                        >
+                          {access.client?.status === 'active' ? 'Activo' :
+                           access.client?.status === 'expiring' ? 'Por Vencer' : 'Inactivo'}
+                        </span>
                       </td>
                     </tr>
                   ))

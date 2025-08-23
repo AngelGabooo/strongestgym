@@ -4,6 +4,9 @@ import { HomeIcon, UserGroupIcon, QrCodeIcon, ClockIcon, CogIcon, ChartBarIcon, 
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { calculateSubscriptionStatus } from '../utils/helpers';
+import { db } from '../firebase'; // Asegúrate de que esta sea la ruta correcta a tu configuración de Firebase
+import { collection, getDocs, onSnapshot, query, where } from 'firebase/firestore';
+import { startOfDay, endOfDay, addDays } from 'date-fns';
 
 const Sidebar = ({ isOpen, onClose, className = '', ...props }) => {
   const location = useLocation();
@@ -15,33 +18,41 @@ const Sidebar = ({ isOpen, onClose, className = '', ...props }) => {
     activeMembers: 0,
     expiringSoon: 0,
   });
+  const [error, setError] = useState(null);
 
   const MAX_CAPACITY = 200; // Capacidad máxima del gimnasio, ajustable
 
   useEffect(() => {
-    const updateGymStats = () => {
+    const updateGymStats = async () => {
       try {
-        // Leer datos de localStorage
-        const storedClients = localStorage.getItem('clients');
-        const storedHistory = localStorage.getItem('accessHistory');
-        const clients = storedClients ? JSON.parse(storedClients) : [];
-        const history = storedHistory ? JSON.parse(storedHistory) : [];
+        // Obtener clientes de Firestore
+        const clientsSnapshot = await getDocs(collection(db, 'clients'));
+        const clients = clientsSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+          status: calculateSubscriptionStatus(doc.data().expirationDate),
+        }));
 
-        // Obtener fecha actual
+        // Obtener accesos de hoy
         const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const tomorrow = new Date(today);
-        tomorrow.setDate(today.getDate() + 2);
+        const startOfToday = startOfDay(today);
+        const endOfToday = endOfDay(today);
+
+        const accessQuery = query(
+          collection(db, 'accessHistory'),
+          where('timestamp', '>=', startOfToday.toISOString()),
+          where('timestamp', '<=', endOfToday.toISOString())
+        );
+        const accessSnapshot = await getDocs(accessQuery);
+        const todayHistory = accessSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
 
         // Calcular ocupación (clientes con entrada sin salida hoy)
-        const todayHistory = history.filter((entry) => {
-          const entryDate = new Date(entry.timestamp);
-          return entryDate.toDateString() === today.toDateString();
-        });
-
         const activeClients = [];
         clients.forEach((client) => {
-          if (calculateSubscriptionStatus(client.expirationDate) !== 'active') return;
+          if (client.status !== 'active') return;
 
           const entries = todayHistory.filter(
             (entry) => entry.clientEmail === client.email && entry.type === 'entry'
@@ -59,11 +70,10 @@ const Sidebar = ({ isOpen, onClose, className = '', ...props }) => {
         const occupancyPercentage = Math.round((occupancy / MAX_CAPACITY) * 100);
 
         // Calcular miembros activos
-        const activeMembers = clients.filter(
-          (client) => calculateSubscriptionStatus(client.expirationDate) === 'active'
-        ).length;
+        const activeMembers = clients.filter(c => c.status === 'active').length;
 
         // Calcular membresías que vencen pronto
+        const tomorrow = addDays(today, 2);
         const expiringSoon = clients.filter((client) => {
           const expirationDate = new Date(client.expirationDate);
           return expirationDate > today && expirationDate <= tomorrow;
@@ -75,18 +85,102 @@ const Sidebar = ({ isOpen, onClose, className = '', ...props }) => {
           activeMembers,
           expiringSoon,
         });
+
+        setError(null);
       } catch (err) {
         console.error('Error calculando estadísticas del gimnasio:', err);
+        setError(err.message);
       }
     };
 
-    updateGymStats();
-    window.addEventListener('storage', updateGymStats);
-    const interval = setInterval(updateGymStats, 60000);
+    // Configurar listeners en tiempo real
+    const clientsUnsubscribe = onSnapshot(collection(db, 'clients'), (snapshot) => {
+      const clients = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        status: calculateSubscriptionStatus(doc.data().expirationDate),
+      }));
 
+      const activeMembers = clients.filter(c => c.status === 'active').length;
+      const tomorrow = addDays(new Date(), 2);
+      const expiringSoon = clients.filter((client) => {
+        const expirationDate = new Date(client.expirationDate);
+        return expirationDate > new Date() && expirationDate <= tomorrow;
+      }).length;
+
+      setGymStats(prev => ({
+        ...prev,
+        activeMembers,
+        expiringSoon,
+      }));
+    }, (err) => {
+      console.error('Error en el listener de clientes:', err);
+      setError(err.message);
+    });
+
+    const today = new Date();
+    const startOfToday = startOfDay(today);
+    const endOfToday = endOfDay(today);
+    const accessQuery = query(
+      collection(db, 'accessHistory'),
+      where('timestamp', '>=', startOfToday.toISOString()),
+      where('timestamp', '<=', endOfToday.toISOString())
+    );
+
+    const accessUnsubscribe = onSnapshot(accessQuery, (snapshot) => {
+      const todayHistory = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+
+      // Obtener clientes para recalcular ocupación
+      getDocs(collection(db, 'clients')).then((clientsSnapshot) => {
+        const clients = clientsSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+          status: calculateSubscriptionStatus(doc.data().expirationDate),
+        }));
+
+        const activeClients = [];
+        clients.forEach((client) => {
+          if (client.status !== 'active') return;
+
+          const entries = todayHistory.filter(
+            (entry) => entry.clientEmail === client.email && entry.type === 'entry'
+          );
+          const exits = todayHistory.filter(
+            (entry) => entry.clientEmail === client.email && entry.type === 'exit'
+          );
+
+          if (entries.length > exits.length) {
+            activeClients.push(client.email);
+          }
+        });
+
+        const occupancy = activeClients.length;
+        const occupancyPercentage = Math.round((occupancy / MAX_CAPACITY) * 100);
+
+        setGymStats(prev => ({
+          ...prev,
+          occupancy,
+          occupancyPercentage: Math.min(occupancyPercentage, 100),
+        }));
+      }).catch((err) => {
+        console.error('Error al obtener clientes para ocupación:', err);
+        setError(err.message);
+      });
+    }, (err) => {
+      console.error('Error en el listener de accesos:', err);
+      setError(err.message);
+    });
+
+    // Cargar datos iniciales
+    updateGymStats();
+
+    // Limpiar listeners al desmontar
     return () => {
-      window.removeEventListener('storage', updateGymStats);
-      clearInterval(interval);
+      clientsUnsubscribe();
+      accessUnsubscribe();
     };
   }, []);
 
@@ -251,6 +345,11 @@ const Sidebar = ({ isOpen, onClose, className = '', ...props }) => {
         })}
       </nav>
       <div className="px-4 mt-8">
+        {error && (
+          <div className="bg-red-900/30 rounded-2xl p-3 mb-4">
+            <p className="text-xs text-red-300">Error: {error}</p>
+          </div>
+        )}
         <div className="bg-gradient-to-r from-red-900/40 to-black/40 backdrop-blur-sm rounded-2xl p-4 border border-red-800/30">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-sm font-semibold text-white">Estado del Gym</h3>

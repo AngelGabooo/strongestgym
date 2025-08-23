@@ -83,9 +83,10 @@ const QRScanner = ({ onScan, className = '', continuousMode = true }) => {
 
       const constraints = {
         video: {
-          facingMode: 'environment',
-          width: { min: 320, ideal: 640 },
-          height: { min: 240, ideal: 480 }
+          facingMode: { ideal: 'environment' },
+          width: { min: 320, ideal: window.innerWidth <= 640 ? window.innerWidth : 640 },
+          height: { min: 240, ideal: window.innerWidth <= 640 ? window.innerWidth * 0.75 : 480 },
+          aspectRatio: { ideal: 4 / 3 }
         }
       };
 
@@ -148,7 +149,7 @@ const QRScanner = ({ onScan, className = '', continuousMode = true }) => {
 
       const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
 
-      const code = jsQR(imageData.data, canvas.width, canvas.height, {
+      const code = jsQR(imageData.data, imageData.width, imageData.height, {
         inversionAttempts: 'attemptBoth',
       });
 
@@ -223,17 +224,13 @@ const QRScanner = ({ onScan, className = '', continuousMode = true }) => {
 
         try {
           const todayRecords = await getTodayAccessRecords(client.email);
-          // Ordenar registros por timestamp descendente para obtener el más reciente
           const sortedRecords = todayRecords.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
-          // Determinar si el último registro es una entrada o salida
           const lastRecord = sortedRecords.length > 0 ? sortedRecords[0] : null;
 
           if (lastRecord && lastRecord.type === 'entry') {
-            // Último registro es entrada, registrar salida
             await registerExit(client);
           } else {
-            // No hay registros o el último es salida, registrar entrada
             await registerEntry(client);
           }
         } catch (err) {
@@ -381,31 +378,32 @@ const QRScanner = ({ onScan, className = '', continuousMode = true }) => {
 
   return (
     <div className={className}>
-      <div className="bg-black backdrop-blur-xl rounded-3xl border border-red-900/20 p-6 shadow-2xl">
+      <div className="bg-black backdrop-blur-xl rounded-3xl border border-red-900/20 p-4 sm:p-6 shadow-2xl">
         {!scannedData ? (
-          <div className="border-2 border-dashed border-red-900/30 rounded-xl p-8 bg-gradient-to-br from-red-950/10 via-black/30 to-red-950/10 backdrop-blur-sm">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="border-2 border-dashed border-red-900/30 rounded-xl p-4 sm:p-8 bg-gradient-to-br from-red-950/10 via-black/30 to-red-950/10 backdrop-blur-sm">
+            <div className="flex flex-col gap-6">
               {hasCamera && !loading && (
                 <div className="text-center">
-                  <div className="relative mx-auto w-80 h-64 bg-gradient-to-br from-black via-gray-900 to-black rounded-lg overflow-hidden mb-4 border border-red-900/20">
+                  <div className="relative mx-auto w-full max-w-md aspect-[4/3] bg-gradient-to-br from-black via-gray-900 to-black rounded-lg overflow-hidden mb-4 border border-red-900/20">
                     <video 
                       ref={videoRef}
                       className="w-full h-full object-cover"
+                      style={{ transform: window.innerWidth <= 640 ? 'rotate(0deg)' : 'none' }}
                       autoPlay
                       playsInline
                       muted
                     />
                     <div className="absolute inset-0 border-4 border-red-500 rounded-lg shadow-lg shadow-red-500/25">
-                      <div className="absolute top-4 left-4 w-8 h-8 border-l-4 border-t-4 border-red-500"></div>
-                      <div className="absolute top-4 right-4 w-8 h-8 border-r-4 border-t-4 border-red-500"></div>
-                      <div className="absolute bottom-4 left-4 w-8 h-8 border-l-4 border-b-4 border-red-500"></div>
-                      <div className="absolute bottom-4 right-4 w-8 h-8 border-r-4 border-b-4 border-red-500"></div>
+                      <div className="absolute top-4 left-4 w-6 h-6 border-l-4 border-t-4 border-red-500"></div>
+                      <div className="absolute top-4 right-4 w-6 h-6 border-r-4 border-t-4 border-red-500"></div>
+                      <div className="absolute bottom-4 left-4 w-6 h-6 border-l-4 border-b-4 border-red-500"></div>
+                      <div className="absolute bottom-4 right-4 w-6 h-6 border-r-4 border-b-4 border-red-500"></div>
                     </div>
                     <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="w-64 h-2 bg-red-500 opacity-80 animate-pulse shadow-lg shadow-red-500/50"></div>
+                      <div className="w-4/5 h-2 bg-red-500 opacity-80 animate-pulse shadow-lg shadow-red-500/50"></div>
                     </div>
                   </div>
-                  <p className="text-gray-300 mb-4 text-lg">
+                  <p className="text-gray-300 mb-4 text-base sm:text-lg">
                     {scanStatus || 'Por favor, centra el código QR en el marco.'}
                   </p>
                   <button
@@ -418,14 +416,14 @@ const QRScanner = ({ onScan, className = '', continuousMode = true }) => {
               )}
               {loading && (
                 <div className="text-center">
-                  <p className="text-gray-300 mb-4 text-lg">Cargando clientes...</p>
+                  <p className="text-gray-300 mb-4 text-base sm:text-lg">Cargando clientes...</p>
                 </div>
               )}
               <div className="text-center">
-                <div className="mx-auto w-32 h-32 bg-gradient-to-br from-red-950/20 via-black/40 to-red-950/20 rounded-xl flex items-center justify-center mb-6 border border-red-900/20">
-                  <QrCodeIcon className="w-16 h-16 text-red-500" />
+                <div className="mx-auto w-24 h-24 sm:w-32 sm:h-32 bg-gradient-to-br from-red-950/20 via-black/40 to-red-950/20 rounded-xl flex items-center justify-center mb-4 sm:mb-6 border border-red-900/20">
+                  <QrCodeIcon className="w-12 h-12 sm:w-16 sm:h-16 text-red-500" />
                 </div>
-                <p className="text-gray-300 mb-6 text-lg">
+                <p className="text-gray-300 mb-4 sm:mb-6 text-base sm:text-lg">
                   Ingresa el PIN del cliente
                 </p>
                 <form onSubmit={handlePinSubmit} className="mt-4">
@@ -458,13 +456,13 @@ const QRScanner = ({ onScan, className = '', continuousMode = true }) => {
             </div>
           </div>
         ) : (
-          <div className="bg-gradient-to-br from-red-950/10 via-black/40 to-red-950/10 backdrop-blur-xl rounded-xl p-6 border border-red-900/20">
-            <div className="flex items-center mb-6 p-3 bg-gradient-to-r from-green-950/30 via-black/30 to-green-950/30 rounded-xl border border-green-500/20">
+          <div className="bg-gradient-to-br from-red-950/10 via-black/40 to-red-950/10 backdrop-blur-xl rounded-xl p-4 sm:p-6 border border-red-900/20">
+            <div className="flex items-center mb-4 sm:mb-6 p-3 bg-gradient-to-r from-green-950/30 via-black/30 to-green-950/30 rounded-xl border border-green-500/20">
               <div className="w-4 h-4 bg-green-500 rounded-full mr-2 animate-pulse"></div>
-              <h3 className="text-xl font-semibold text-white">Cliente Identificado</h3>
+              <h3 className="text-lg sm:text-xl font-semibold text-white">Cliente Identificado</h3>
             </div>
             
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="flex flex-col lg:grid lg:grid-cols-3 gap-4 sm:gap-6">
               <div className="lg:col-span-2 space-y-4">
                 <div className="flex items-center p-4 bg-gradient-to-r from-red-950/20 via-black/30 to-red-950/20 rounded-xl border border-red-900/20 backdrop-blur-sm">
                   <UsersIcon className="w-6 h-6 text-red-500 mr-3" />
@@ -486,7 +484,7 @@ const QRScanner = ({ onScan, className = '', continuousMode = true }) => {
                   <HashtagIcon className="w-6 h-6 text-red-500 mr-3" />
                   <div>
                     <p className="text-sm text-gray-400">PIN</p>
-                    <p className="text-white font-semibold text-xl">{scannedData.pin}</p>
+                    <p className="text-white font-semibold text-lg sm:text-xl">{scannedData.pin}</p>
                     <p className="text-xs text-gray-400 mt-1">Úsalo para acceso manual</p>
                   </div>
                 </div>
@@ -521,7 +519,7 @@ const QRScanner = ({ onScan, className = '', continuousMode = true }) => {
                 <div className="bg-black p-4 rounded-xl shadow-lg">
                   <QRCodeDisplay 
                     value={JSON.stringify({ qrCode: scannedData.qrCode, pin: scannedData.pin })} 
-                    size={200}
+                    size={150}
                     withDownload={true}
                   />
                 </div>

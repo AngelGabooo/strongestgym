@@ -1,6 +1,7 @@
+
 import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import { format } from 'date-fns';
+import { format, differenceInDays } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { 
   MagnifyingGlassIcon,
@@ -12,9 +13,10 @@ import {
   CalendarDaysIcon,
   CreditCardIcon,
   HashtagIcon,
-  PhoneIcon
+  PhoneIcon,
+  ChatBubbleBottomCenterTextIcon
 } from '@heroicons/react/24/outline';
-import { UserCircleIcon } from "@heroicons/react/24/outline";
+import { UserCircleIcon } from '@heroicons/react/24/outline';
 
 const ClientTable = ({ clients, onViewQR, onEdit, onDelete, onRenew, className = '' }) => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -64,6 +66,24 @@ const ClientTable = ({ clients, onViewQR, onEdit, onDelete, onRenew, className =
 
   const getInitial = (name) => {
     return name.trim().charAt(0).toUpperCase() || '?';
+  };
+
+  // Función para verificar si la suscripción está a 5 días o menos de vencer
+  const isExpiringInFiveDays = (expirationDate) => {
+    const today = new Date();
+    const expiration = new Date(expirationDate);
+    const daysUntilExpiration = differenceInDays(expiration, today);
+    return daysUntilExpiration >= 0 && daysUntilExpiration <= 5;
+  };
+
+  // Función para generar el enlace de WhatsApp con un mensaje predefinido
+  const sendWhatsAppReminder = (client) => {
+    const phoneNumber = client.phone.replace(/[^0-9+]/g, ''); // Limpiar el número (quitar espacios, guiones, etc.)
+    const formattedDate = format(new Date(client.expirationDate), 'dd/MM/yyyy', { locale: es });
+    const message = `Hola ${client.name}, tu suscripción en Strongest Gym está por vencer el ${formattedDate}. ¡Renueva ahora para seguir entrenando! Contacta con nosotros para más detalles.`;
+    const encodedMessage = encodeURIComponent(message);
+    const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodedMessage}`;
+    window.open(whatsappUrl, '_blank');
   };
 
   return (
@@ -236,6 +256,15 @@ const ClientTable = ({ clients, onViewQR, onEdit, onDelete, onRenew, className =
                         >
                           <PencilIcon className="w-5 h-5 text-yellow-400 group-hover:text-yellow-300" />
                         </button>
+                        {client.status === 'expiring' && isExpiringInFiveDays(client.expirationDate) && (
+                          <button
+                            onClick={() => sendWhatsAppReminder(client)}
+                            className="p-3 bg-green-600/20 hover:bg-green-600/30 border border-green-500/30 rounded-lg transition-all duration-200 group"
+                            title="Enviar recordatorio por WhatsApp"
+                          >
+                            <ChatBubbleBottomCenterTextIcon className="w-5 h-5 text-green-400 group-hover:text-green-300" />
+                          </button>
+                        )}
                         {client.status === 'expired' && (
                           <button
                             onClick={() => onRenew(client)}
@@ -333,6 +362,15 @@ const ClientTable = ({ clients, onViewQR, onEdit, onDelete, onRenew, className =
                     >
                       <PencilIcon className="w-5 h-5 text-yellow-400 group-hover:text-yellow-300" />
                     </button>
+                    {client.status === 'expiring' && isExpiringInFiveDays(client.expirationDate) && (
+                      <button
+                        onClick={() => sendWhatsAppReminder(client)}
+                        className="p-3 bg-green-600/20 hover:bg-green-600/30 border border-green-500/30 rounded-lg transition-all duration-200 group"
+                        title="Enviar recordatorio por WhatsApp"
+                      >
+                        <ChatBubbleBottomCenterTextIcon className="w-5 h-5 text-green-400 group-hover:text-green-300" />
+                      </button>
+                    )}
                     {client.status === 'expired' && (
                       <button
                         onClick={() => onRenew(client)}
