@@ -27,7 +27,6 @@ const History = ({ className = '' }) => {
 
   const gymConfig = {
     name: 'STRONGEST Villa Comaltitlan',
-    logo: '/logo-strongest.png',
     colors: {
       primary: '#DC2626',
       secondary: '#000000',
@@ -192,7 +191,7 @@ const History = ({ className = '' }) => {
       doc.rect(20, 15, 30, 30, 'F');
       doc.setTextColor(220, 38, 38);
       doc.setFontSize(12);
-      doc.text('LOGO', 32, 32);
+      doc.text('', 32, 32);
     } catch (error) {
       console.log('No se pudo cargar el logo:', error);
     }

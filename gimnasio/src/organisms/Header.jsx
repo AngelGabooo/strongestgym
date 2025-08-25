@@ -51,7 +51,7 @@ const Header = ({ onToggleSidebar, isSidebarOpen, className = '', ...props }) =>
                 </div>
                 <div>
                   <h1 className="text-lg font-bold text-white">STRONGEST</h1>
-                  <p className="text-xs text-red-400 -mt-1">ADMIN PANEL</p>
+                  <p className="text-xs text-red-400 -mt-1">Administrador</p>
                 </div>
               </div>
             </div>

@@ -8,7 +8,7 @@ const AccessHistory = ({ history, className = '', ...props }) => {
     <Card className={`p-6 bg-gradient-to-br from-black via-gray-900 to-red-950 border border-red-800/50 shadow-xl shadow-red-900/20 ${className}`} {...props}>
       <h2 className="text-xl font-semibold text-white mb-4">Historial de Accesos</h2>
       <div className="overflow-x-auto bg-transparent">
-        <table className="min-w-full divide-y divide-red-800/50">
+        <table className="min-w-full dividehahy divide-red-800/50">
           <thead className="bg-gradient-to-br from-black via-gray-900 to-red-950">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">

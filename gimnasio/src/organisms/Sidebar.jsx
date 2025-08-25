@@ -253,7 +253,7 @@ const Sidebar = ({ isOpen, onClose, className = '', ...props }) => {
             </div>
             <div>
               <h1 className="text-lg font-bold text-white">STRONGEST</h1>
-              <p className="text-xs text-red-400 -mt-1">GYM ADMIN</p>
+              <p className="text-xs text-red-400 -mt-1">GYM </p>
             </div>
           </div>
         </div>
@@ -284,7 +284,7 @@ const Sidebar = ({ isOpen, onClose, className = '', ...props }) => {
               </div>
               <div>
                 <h1 className="text-base font-bold text-white">STRONGEST</h1>
-                <p className="text-xs text-red-400 -mt-1">GYM ADMIN</p>
+                <p className="text-xs text-red-400 -mt-1">GYM</p>
               </div>
             </div>
             <button
@@ -420,10 +420,11 @@ const Sidebar = ({ isOpen, onClose, className = '', ...props }) => {
             <div className="flex justify-between items-center text-xs mt-1">
               <div className="flex items-center space-x-1">
                 <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
-                <span className="text-gray-400">Base de datos</span>
+                <span className="text-gray-400">Base de datos criptada</span>
               </div>
               <span className="text-blue-400 font-medium">Conectada</span>
             </div>
+            
           </div>
         </div>
       </div>

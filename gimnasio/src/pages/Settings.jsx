@@ -295,17 +295,17 @@ const Settings = ({ className = '', ...props }) => {
               description="Conexión y integridad de datos"
             />
             <HealthCheck 
-              name="Almacenamiento Local" 
+              name="Almacenamiento" 
               status={healthChecks.storage} 
               description="Espacio y accesibilidad"
             />
             <HealthCheck 
-              name="Sistema de Correo" 
+              name="Sistema" 
               status={healthChecks.email} 
               description="Configuración de notificaciones"
             />
             <HealthCheck 
-              name="Notificaciones Push" 
+              name="Notificaciones" 
               status={healthChecks.notifications} 
               description="Alertas automáticas"
             />
@@ -370,7 +370,7 @@ const Settings = ({ className = '', ...props }) => {
         <Card className="p-8 bg-gradient-to-br from-black via-gray-900 to-red-950 border border-red-500/30 backdrop-blur-xl hover:shadow-red-500/10 hover:shadow-2xl transition-all duration-300">
           <h2 className="text-2xl font-bold bg-gradient-to-r from-red-300 to-red-500 bg-clip-text text-transparent mb-6 flex items-center">
             <InformationCircleIcon className="w-7 h-7 mr-3 text-red-400" />
-            Soporte Técnico Premium
+            Soporte Técnico
           </h2>
           
           <div className="bg-gradient-to-br from-red-950/40 to-black/40 rounded-2xl p-6 border border-red-500/20 mb-6">
