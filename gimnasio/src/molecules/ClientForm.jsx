@@ -180,14 +180,16 @@ const ClientForm = ({ onSave, initialData = null, onCancel, className = '' }) =>
 
   return (
     <div className={`${className}`}>
-      <form onSubmit={handleSubmit} noValidate className="space-y-6">
-        <div className="bg-gray-900/30 backdrop-blur-sm rounded-2xl p-6 border border-gray-700/30">
-          <h3 className="text-lg font-semibold text-white flex items-center mb-4">
-            <UserIcon className="w-5 h-5 text-red-500 mr-2" />
+      <form onSubmit={handleSubmit} noValidate className="space-y-4 sm:space-y-6">
+        {/* Sección de Información Personal */}
+        <div className="bg-gray-900/30 backdrop-blur-sm rounded-2xl p-4 sm:p-6 border border-gray-700/30">
+          <h3 className="text-base sm:text-lg font-semibold text-white flex items-center mb-4">
+            <UserIcon className="w-4 h-4 sm:w-5 sm:h-5 text-red-500 mr-2" />
             Información Personal
           </h3>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-4">
+            {/* Nombre completo */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Nombre completo *
@@ -199,7 +201,7 @@ const ClientForm = ({ onSave, initialData = null, onCancel, className = '' }) =>
                   name="name"
                   value={formData.name}
                   onChange={handleChange}
-                  className={`block w-full pl-10 pr-3 py-3 border ${
+                  className={`block w-full pl-10 pr-3 py-3 text-sm sm:text-base border ${
                     errors.name ? 'border-red-500' : 'border-gray-600/50'
                   } bg-gray-900/50 text-white placeholder-gray-400 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200 backdrop-blur-sm`}
                   placeholder="Ingresa el nombre completo"
@@ -207,13 +209,14 @@ const ClientForm = ({ onSave, initialData = null, onCancel, className = '' }) =>
                 />
               </div>
               {errors.name && (
-                <p className="mt-1 text-sm text-red-400 flex items-center">
-                  <ExclamationTriangleIcon className="w-4 h-4 mr-1" />
-                  {errors.name}
+                <p className="mt-1 text-xs sm:text-sm text-red-400 flex items-start">
+                  <ExclamationTriangleIcon className="w-4 h-4 mr-1 mt-0.5 flex-shrink-0" />
+                  <span>{errors.name}</span>
                 </p>
               )}
             </div>
 
+            {/* Teléfono */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Teléfono *
@@ -230,7 +233,7 @@ const ClientForm = ({ onSave, initialData = null, onCancel, className = '' }) =>
                       e.preventDefault();
                     }
                   }}
-                  className={`block w-full pl-10 pr-3 py-3 border ${
+                  className={`block w-full pl-10 pr-3 py-3 text-sm sm:text-base border ${
                     errors.phone ? 'border-red-500' : 'border-gray-600/50'
                   } bg-gray-900/50 text-white placeholder-gray-400 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200 backdrop-blur-sm`}
                   placeholder="1234567890"
@@ -240,14 +243,15 @@ const ClientForm = ({ onSave, initialData = null, onCancel, className = '' }) =>
                 />
               </div>
               {errors.phone && (
-                <p className="mt-1 text-sm text-red-400 flex items-center">
-                  <ExclamationTriangleIcon className="w-4 h-4 mr-1" />
-                  {errors.phone}
+                <p className="mt-1 text-xs sm:text-sm text-red-400 flex items-start">
+                  <ExclamationTriangleIcon className="w-4 h-4 mr-1 mt-0.5 flex-shrink-0" />
+                  <span>{errors.phone}</span>
                 </p>
               )}
             </div>
 
-            <div className="md:col-span-2">
+            {/* Email */}
+            <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Correo electrónico *
               </label>
@@ -258,7 +262,7 @@ const ClientForm = ({ onSave, initialData = null, onCancel, className = '' }) =>
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
-                  className={`block w-full pl-10 pr-3 py-3 border ${
+                  className={`block w-full pl-10 pr-3 py-3 text-sm sm:text-base border ${
                     errors.email ? 'border-red-500' : 'border-gray-600/50'
                   } bg-gray-900/50 text-white placeholder-gray-400 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200 backdrop-blur-sm`}
                   placeholder="cliente@email.com"
@@ -266,63 +270,68 @@ const ClientForm = ({ onSave, initialData = null, onCancel, className = '' }) =>
                 />
               </div>
               {errors.email && (
-                <p className="mt-1 text-sm text-red-400 flex items-center">
-                  <ExclamationTriangleIcon className="w-4 h-4 mr-1" />
-                  {errors.email}
+                <p className="mt-1 text-xs sm:text-sm text-red-400 flex items-start">
+                  <ExclamationTriangleIcon className="w-4 h-4 mr-1 mt-0.5 flex-shrink-0" />
+                  <span>{errors.email}</span>
                 </p>
               )}
             </div>
           </div>
         </div>
 
-        <div className="bg-gray-900/30 backdrop-blur-sm rounded-2xl p-6 border border-gray-700/30">
-          <h3 className="text-lg font-semibold text-white flex items-center mb-4">
-            <CurrencyDollarIcon className="w-5 h-5 text-red-500 mr-2" />
+        {/* Sección de Información de Suscripción */}
+        <div className="bg-gray-900/30 backdrop-blur-sm rounded-2xl p-4 sm:p-6 border border-gray-700/30">
+          <h3 className="text-base sm:text-lg font-semibold text-white flex items-center mb-4">
+            <CurrencyDollarIcon className="w-4 h-4 sm:w-5 sm:h-5 text-red-500 mr-2" />
             Información de Suscripción
           </h3>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Tipo de suscripción *
-              </label>
-              <select
-                name="subscriptionType"
-                value={formData.subscriptionType}
-                onChange={handleChange}
-                className="block w-full px-3 py-3 border border-gray-600/50 bg-gray-900/50 text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200 backdrop-blur-sm"
-                required
-              >
-                <option value="monthly">Mensual</option>
-                <option value="per_visit">Por visita</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Fecha de pago *
-              </label>
-              <div className="relative">
-                <CalendarIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  type="date"
-                  name="paymentDate"
-                  value={formData.paymentDate}
+          <div className="space-y-4">
+            {/* Primera fila: Tipo de suscripción y Fecha de pago */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Tipo de suscripción *
+                </label>
+                <select
+                  name="subscriptionType"
+                  value={formData.subscriptionType}
                   onChange={handleChange}
-                  className={`block w-full pl-10 pr-3 py-3 border ${
-                    errors.paymentDate ? 'border-red-500' : 'border-gray-600/50'
-                  } bg-gray-900/50 text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200 backdrop-blur-sm`}
+                  className="block w-full px-3 py-3 text-sm sm:text-base border border-gray-600/50 bg-gray-900/50 text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200 backdrop-blur-sm"
                   required
-                />
+                >
+                  <option value="monthly">Mensual</option>
+                  <option value="per_visit">Por visita</option>
+                </select>
               </div>
-              {errors.paymentDate && (
-                <p className="mt-1 text-sm text-red-400 flex items-center">
-                  <ExclamationTriangleIcon className="w-4 h-4 mr-1" />
-                  {errors.paymentDate}
-                </p>
-              )}
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Fecha de pago *
+                </label>
+                <div className="relative">
+                  <CalendarIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input
+                    type="date"
+                    name="paymentDate"
+                    value={formData.paymentDate}
+                    onChange={handleChange}
+                    className={`block w-full pl-10 pr-3 py-3 text-sm sm:text-base border ${
+                      errors.paymentDate ? 'border-red-500' : 'border-gray-600/50'
+                    } bg-gray-900/50 text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200 backdrop-blur-sm`}
+                    required
+                  />
+                </div>
+                {errors.paymentDate && (
+                  <p className="mt-1 text-xs sm:text-sm text-red-400 flex items-start">
+                    <ExclamationTriangleIcon className="w-4 h-4 mr-1 mt-0.5 flex-shrink-0" />
+                    <span>{errors.paymentDate}</span>
+                  </p>
+                )}
+              </div>
             </div>
 
+            {/* Campos condicionados por tipo de suscripción */}
             {formData.subscriptionType === 'monthly' ? (
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -337,7 +346,7 @@ const ClientForm = ({ onSave, initialData = null, onCancel, className = '' }) =>
                     step="0.01"
                     value={formData.monthlyCost}
                     onChange={handleChange}
-                    className={`block w-full pl-10 pr-3 py-3 border ${
+                    className={`block w-full pl-10 pr-3 py-3 text-sm sm:text-base border ${
                       errors.monthlyCost ? 'border-red-500' : 'border-gray-600/50'
                     } bg-gray-900/50 text-white placeholder-gray-400 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200 backdrop-blur-sm`}
                     placeholder="0.00"
@@ -345,14 +354,14 @@ const ClientForm = ({ onSave, initialData = null, onCancel, className = '' }) =>
                   />
                 </div>
                 {errors.monthlyCost && (
-                  <p className="mt-1 text-sm text-red-400 flex items-center">
-                    <ExclamationTriangleIcon className="w-4 h-4 mr-1" />
-                    {errors.monthlyCost}
+                  <p className="mt-1 text-xs sm:text-sm text-red-400 flex items-start">
+                    <ExclamationTriangleIcon className="w-4 h-4 mr-1 mt-0.5 flex-shrink-0" />
+                    <span>{errors.monthlyCost}</span>
                   </p>
                 )}
               </div>
             ) : (
-              <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">
                     Costo por Visita ($) *
@@ -366,7 +375,7 @@ const ClientForm = ({ onSave, initialData = null, onCancel, className = '' }) =>
                       step="0.01"
                       value={formData.perVisitCost}
                       onChange={handleChange}
-                      className={`block w-full pl-10 pr-3 py-3 border ${
+                      className={`block w-full pl-10 pr-3 py-3 text-sm sm:text-base border ${
                         errors.perVisitCost ? 'border-red-500' : 'border-gray-600/50'
                       } bg-gray-900/50 text-white placeholder-gray-400 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200 backdrop-blur-sm`}
                       placeholder="40.00"
@@ -374,9 +383,9 @@ const ClientForm = ({ onSave, initialData = null, onCancel, className = '' }) =>
                     />
                   </div>
                   {errors.perVisitCost && (
-                    <p className="mt-1 text-sm text-red-400 flex items-center">
-                      <ExclamationTriangleIcon className="w-4 h-4 mr-1" />
-                      {errors.perVisitCost}
+                    <p className="mt-1 text-xs sm:text-sm text-red-400 flex items-start">
+                      <ExclamationTriangleIcon className="w-4 h-4 mr-1 mt-0.5 flex-shrink-0" />
+                      <span>{errors.perVisitCost}</span>
                     </p>
                   )}
                 </div>
@@ -389,7 +398,7 @@ const ClientForm = ({ onSave, initialData = null, onCancel, className = '' }) =>
                     name="visitDays"
                     value={formData.visitDays}
                     onChange={handleChange}
-                    className={`block w-full px-3 py-3 border ${
+                    className={`block w-full px-3 py-3 text-sm sm:text-base border ${
                       errors.visitDays ? 'border-red-500' : 'border-gray-600/50'
                     } bg-gray-900/50 text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200 backdrop-blur-sm`}
                     required
@@ -398,33 +407,35 @@ const ClientForm = ({ onSave, initialData = null, onCancel, className = '' }) =>
                     <option value="15">15 días</option>
                   </select>
                   {errors.visitDays && (
-                    <p className="mt-1 text-sm text-red-400 flex items-center">
-                      <ExclamationTriangleIcon className="w-4 h-4 mr-1" />
-                      {errors.visitDays}
+                    <p className="mt-1 text-xs sm:text-sm text-red-400 flex items-start">
+                      <ExclamationTriangleIcon className="w-4 h-4 mr-1 mt-0.5 flex-shrink-0" />
+                      <span>{errors.visitDays}</span>
                     </p>
                   )}
                 </div>
-              </>
+              </div>
             )}
           </div>
         </div>
         
+        {/* Error general del formulario */}
         {errors.form && (
           <div className="bg-red-900/30 backdrop-blur-sm border border-red-500/50 rounded-2xl p-4">
-            <div className="flex items-center">
-              <ExclamationTriangleIcon className="w-5 h-5 text-red-400 mr-2" />
-              <p className="text-red-200">{errors.form}</p>
+            <div className="flex items-start">
+              <ExclamationTriangleIcon className="w-5 h-5 text-red-400 mr-2 mt-0.5 flex-shrink-0" />
+              <p className="text-red-200 text-sm">{errors.form}</p>
             </div>
           </div>
         )}
         
-        <div className="flex justify-end space-x-4 pt-6">
+        {/* Botones de acción */}
+        <div className="flex flex-col sm:flex-row justify-end gap-3 sm:gap-4 pt-4 sm:pt-6">
           {onCancel && (
             <button
               type="button"
               onClick={onCancel}
               disabled={isSubmitting}
-              className="px-6 py-3 bg-gray-800/50 border border-gray-600/50 text-gray-300 rounded-xl hover:bg-gray-700/50 hover:border-gray-500/50 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full sm:w-auto px-6 py-3 text-sm sm:text-base bg-gray-800/50 border border-gray-600/50 text-gray-300 rounded-xl hover:bg-gray-700/50 hover:border-gray-500/50 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed order-2 sm:order-1"
             >
               Cancelar
             </button>
@@ -433,7 +444,7 @@ const ClientForm = ({ onSave, initialData = null, onCancel, className = '' }) =>
           <button
             type="submit"
             disabled={isSubmitting}
-            className="px-8 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-xl hover:from-red-700 hover:to-red-800 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-black transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed min-w-[140px] flex items-center justify-center"
+            className="w-full sm:w-auto px-6 sm:px-8 py-3 text-sm sm:text-base bg-gradient-to-r from-red-600 to-red-700 text-white rounded-xl hover:from-red-700 hover:to-red-800 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-black transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed min-w-[140px] flex items-center justify-center order-1 sm:order-2"
           >
             {isSubmitting ? (
               <>
