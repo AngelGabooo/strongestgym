@@ -5,13 +5,25 @@ import Dashboard from './pages/Dashboard';
 import Clients from './pages/Clients';
 import Scanner from './pages/Scanner';
 import History from './pages/History';
-import Reports from './pages/Reports'; // Nuevo import
+import Reports from './pages/Reports';
 import Settings from './pages/Settings';
 import PrivateRoute from './components/PrivateRoute';
+import MaintenancePage from './pages/MaintenancePage'; // Importar la página de mantenimiento
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
+// VARIABLE DE CONTROL DE MANTENIMIENTO
+// Cambia este valor a true para activar el modo mantenimiento
+// Cambia este valor a false para desactivar el modo mantenimiento
+const MAINTENANCE_MODE = true
+
 function App() {
+  // Si el modo mantenimiento está activado, mostrar solo la página de mantenimiento
+  if (MAINTENANCE_MODE) {
+    return <MaintenancePage />;
+  }
+
+  // Si no está en mantenimiento, mostrar la aplicación normal
   return (
     <Router>
       <AuthProvider>
