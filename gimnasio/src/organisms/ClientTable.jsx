@@ -17,7 +17,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { UserCircleIcon } from '@heroicons/react/24/outline';
 
-const ClientTable = ({ clients, onViewQR, onEdit, onDelete, onRenew, className = '', isMobile = false }) => {
+const ClientTable = ({ clients, onViewQR, onEdit, onDelete, onRenew, className = '' }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filter, setFilter] = useState('all');
 
@@ -67,6 +67,7 @@ const ClientTable = ({ clients, onViewQR, onEdit, onDelete, onRenew, className =
     return name.trim().charAt(0).toUpperCase() || '?';
   };
 
+  // Función para verificar si la suscripción está a 5 días o menos de vencer
   const isExpiringInFiveDays = (expirationDate) => {
     const today = new Date();
     const expiration = new Date(expirationDate);
@@ -74,8 +75,9 @@ const ClientTable = ({ clients, onViewQR, onEdit, onDelete, onRenew, className =
     return daysUntilExpiration >= 0 && daysUntilExpiration <= 5;
   };
 
+  // Función para generar el enlace de WhatsApp con un mensaje predefinido
   const sendWhatsAppReminder = (client) => {
-    const phoneNumber = client.phone.replace(/[^0-9+]/g, '');
+    const phoneNumber = client.phone.replace(/[^0-9+]/g, ''); // Limpiar el número (quitar espacios, guiones, etc.)
     const formattedDate = format(new Date(client.expirationDate), 'dd/MM/yyyy', { locale: es });
     const message = `Hola ${client.name}, tu suscripción en Strongest Gym está por vencer el ${formattedDate}. ¡Renueva ahora para seguir entrenando! Contacta con nosotros para más detalles.`;
     const encodedMessage = encodeURIComponent(message);
@@ -272,7 +274,7 @@ const ClientTable = ({ clients, onViewQR, onEdit, onDelete, onRenew, className =
                           </button>
                         )}
                         <button
-                          onClick={() => onDelete(client)} // Cambiado de client.id a client
+                          onClick={() => onDelete(client.id)}
                           className="p-3 bg-red-600/20 hover:bg-red-600/30 border border-red-500/30 rounded-lg transition-all duration-200 group"
                           title="Eliminar"
                         >
@@ -378,7 +380,7 @@ const ClientTable = ({ clients, onViewQR, onEdit, onDelete, onRenew, className =
                       </button>
                     )}
                     <button
-                      onClick={() => onDelete(client)} // Cambiado de client.id a client
+                      onClick={() => onDelete(client.id)}
                       className="p-3 bg-red-600/20 hover:bg-red-600/30 border border-red-500/30 rounded-lg transition-all duration-200 group"
                       title="Eliminar"
                     >
@@ -431,7 +433,6 @@ ClientTable.propTypes = {
   onDelete: PropTypes.func.isRequired,
   onRenew: PropTypes.func.isRequired,
   className: PropTypes.string,
-  isMobile: PropTypes.bool,
 };
 
 export default ClientTable;

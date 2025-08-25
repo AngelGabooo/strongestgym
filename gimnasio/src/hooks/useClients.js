@@ -25,7 +25,7 @@ export const useClients = () => {
       );
       
       console.log('Clientes cargados:', uniqueData);
-      const idCount = uniqueData.reduce((acc, client) => {
+      const idCount = data.reduce((acc, client) => {
         acc[client.id] = (acc[client.id] || 0) + 1;
         return acc;
       }, {});
@@ -61,6 +61,7 @@ export const useClients = () => {
         status: calculateSubscriptionStatus(expirationDate),
       };
       const docRef = await addDoc(collection(db, 'clients'), newClient);
+      // Esperar un pequeño retraso antes de recargar los clientes
       await new Promise(resolve => setTimeout(resolve, 1000));
       await fetchClients();
       return { ...newClient, id: docRef.id };
@@ -73,35 +74,39 @@ export const useClients = () => {
   const editClient = async (id, clientData) => {
     try {
       console.log('Intentando editar cliente con ID:', id, 'Datos:', clientData);
-      const clientRef = doc(db, 'clients', id);
-      const clientDoc = await getDoc(clientRef, { source: 'server' });
+      let clientRef = doc(db, 'clients', id);
+      let clientDoc = await getDoc(clientRef, { source: 'server' });
       if (!clientDoc.exists()) {
-        throw new Error(`No se encontró el documento del cliente con ID: ${id}`);
+        const q = query(collection(db, 'clients'), where('id', '==', id));
+        const snapshot = await getDocs(q, { source: 'server' });
+        if (snapshot.empty) {
+          throw new Error(`No se encontró el documento del cliente con ID: ${id}`);
+        }
+        clientRef = doc(db, 'clients', snapshot.docs[0].id);
+        clientDoc = snapshot.docs[0];
+        console.log('Cliente encontrado usando customId:', id, 'ID de Firestore:', snapshot.docs[0].id);
       }
 
-      const existingClient = clientDoc.data();
+      const existingClient = clients.find(client => client.id === id);
+      if (!existingClient) {
+        console.warn('Cliente no encontrado en la lista local, usando datos de Firestore');
+      }
+      
       const expirationDate = calculateExpirationDate(
         clientData.paymentDate,
         clientData.subscriptionType,
         clientData.visitDays
       );
-
       const updatedClient = {
-        ...existingClient,
         ...clientData,
+        id: clientDoc.id,
+        pin: existingClient?.pin || clientDoc.data().pin,
+        qrCode: existingClient?.qrCode || clientDoc.data().qrCode,
         expirationDate,
         status: calculateSubscriptionStatus(expirationDate),
       };
-
       await updateDoc(clientRef, updatedClient);
-      
-      // Actualizar el estado local
-      setClients(prevClients =>
-        prevClients.map(client =>
-          client.id === id ? { id, ...updatedClient } : client
-        )
-      );
-
+      await fetchClients();
       console.log('Cliente actualizado:', updatedClient);
       return updatedClient;
     } catch (err) {
@@ -114,39 +119,21 @@ export const useClients = () => {
     try {
       console.log('Intentando eliminar cliente con ID:', id);
       const clientRef = doc(db, 'clients', id);
-      
-      // Verificar si el cliente existe
       const clientDoc = await getDoc(clientRef, { source: 'server' });
       if (!clientDoc.exists()) {
-        throw new Error(`No se encontró el cliente con ID: ${id}`);
+        const q = query(collection(db, 'clients'), where('id', '==', id));
+        const snapshot = await getDocs(q, { source: 'server' });
+        if (snapshot.empty) {
+          throw new Error(`No se encontró el documento del cliente con ID: ${id}`);
+        }
+        const docRef = doc(db, 'clients', snapshot.docs[0].id);
+        await deleteDoc(docRef);
+        console.log('Cliente eliminado usando customId:', id);
+      } else {
+        await deleteDoc(clientRef);
+        console.log('Cliente eliminado con ID de Firestore:', id);
       }
-
-      const clientData = clientDoc.data();
-
-      // Eliminar registros relacionados en accessHistory
-      const historyQuery = query(
-        collection(db, 'accessHistory'),
-        where('clientEmail', '==', clientData.email)
-      );
-      const historySnapshot = await getDocs(historyQuery, { source: 'server' });
-      const deleteHistoryPromises = historySnapshot.docs.map(doc => deleteDoc(doc.ref));
-      await Promise.all(deleteHistoryPromises);
-      console.log('Registros de accessHistory eliminados para el cliente con email:', clientData.email);
-
-      // Eliminar el cliente
-      await deleteDoc(clientRef);
-
-      // Actualizar el estado local
-      setClients(prevClients => {
-        const newClients = prevClients.filter(client => client.id !== id);
-        console.log('Clientes después de eliminación:', newClients);
-        return newClients;
-      });
-
-      // Recargar desde Firestore para asegurar sincronización
       await fetchClients();
-
-      console.log('Cliente eliminado con ID:', id);
     } catch (err) {
       console.error('Error en removeClient:', err.code, err.message);
       throw new Error(`Error al eliminar el cliente: ${err.message}`);
@@ -155,9 +142,9 @@ export const useClients = () => {
 
   const registerAccess = async (client, type) => {
     try {
-      console.log('Registrando acceso:', { client, type });
+      console.log('Registrando acceso:', { client, type }); // Log para depuración
       const clientStatus = calculateSubscriptionStatus(client.expirationDate);
-      console.log('Estado del cliente:', clientStatus);
+      console.log('Estado del cliente:', clientStatus); // Log para verificar estado
 
       if (type === 'entry') {
         if (clientStatus === 'expired') {
@@ -170,7 +157,7 @@ export const useClients = () => {
             client: { status: clientStatus },
             reason: 'Suscripción vencida'
           };
-          console.log('Guardando acceso denegado:', accessData);
+          console.log('Guardando acceso denegado:', accessData); // Log para verificar
           await addDoc(collection(db, 'accessHistory'), accessData);
           throw new Error('Acceso denegado: Suscripción vencida. Por favor, renueve su suscripción.');
         } else {
@@ -182,13 +169,13 @@ export const useClients = () => {
             type: 'entry',
             client: { status: clientStatus }
           };
-          console.log('Guardando entrada:', accessData);
+          console.log('Guardando entrada:', accessData); // Log para verificar
           await addDoc(collection(db, 'accessHistory'), accessData);
           return accessData;
         }
       } else if (type === 'exit') {
         const todayRecords = await getTodayAccessRecords(client.email);
-        console.log('Registros de hoy:', todayRecords);
+        console.log('Registros de hoy:', todayRecords); // Log para verificar
         const todayEntries = todayRecords.filter(r => r.type === 'entry');
         if (todayEntries.length === 0) {
           throw new Error('No hay una entrada registrada hoy para registrar una salida.');
@@ -206,7 +193,7 @@ export const useClients = () => {
           client: { status: clientStatus },
           activeTime
         };
-        console.log('Guardando salida:', accessData);
+        console.log('Guardando salida:', accessData); // Log para verificar
         await addDoc(collection(db, 'accessHistory'), accessData);
         return accessData;
       }
@@ -269,6 +256,7 @@ export const useClients = () => {
     }
   };
 
+  // Nueva función para reportes: fetch todo el historial sin filtro
   const fetchAllAccessHistory = async () => {
     try {
       const historyRef = collection(db, 'accessHistory');
@@ -277,19 +265,6 @@ export const useClients = () => {
     } catch (err) {
       console.error('Error en fetchAllAccessHistory:', err.code, err.message);
       throw new Error(`Error al obtener todo el historial de acceso: ${err.message}`);
-    }
-  };
-
-  const deleteAllAccessHistory = async () => {
-    try {
-      const historyRef = collection(db, 'accessHistory');
-      const snapshot = await getDocs(historyRef, { source: 'server' });
-      const deletePromises = snapshot.docs.map(doc => deleteDoc(doc.ref));
-      await Promise.all(deletePromises);
-      console.log('Todos los registros de acceso han sido eliminados');
-    } catch (err) {
-      console.error('Error en deleteAllAccessHistory:', err.code, err.message);
-      throw new Error(`Error al eliminar el historial de acceso: ${err.message}`);
     }
   };
 
@@ -305,7 +280,6 @@ export const useClients = () => {
     getTodayAccessRecords,
     fetchAccessHistory,
     findClientByEmail,
-    fetchAllAccessHistory,
-    deleteAllAccessHistory,
+    fetchAllAccessHistory, // Nueva
   };
 };
