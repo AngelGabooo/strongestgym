@@ -377,7 +377,7 @@ const Settings = ({ className = '', ...props }) => {
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h3 className="text-xl font-semibold bg-gradient-to-r from-white to-red-200 bg-clip-text text-transparent">Biomey - Soluciones Tecnológicas</h3>
-                <p className="text-red-200/70">Angel Gabriel García Samayoa - Fundador & CEO</p>
+                <p className="text-red-200/70">Angel Gabriel García Samayoa - Fundador</p>
               </div>
               <div className="text-right">
                 <p className="text-sm text-red-400 font-semibold">Disponible 24/7</p>

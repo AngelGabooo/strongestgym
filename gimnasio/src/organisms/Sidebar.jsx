@@ -187,7 +187,7 @@ const Sidebar = ({ isOpen, onClose, className = '', ...props }) => {
   // Definir los elementos de navegación y los roles permitidos
   const navigationItems = [
     {
-      name: 'Dashboard',
+      name: 'Panel Principal',
       href: '/dashboard',
       icon: HomeIcon,
       description: 'Panel principal',
@@ -197,7 +197,7 @@ const Sidebar = ({ isOpen, onClose, className = '', ...props }) => {
       name: 'Clientes',
       href: '/clients',
       icon: UserGroupIcon,
-      description: 'Gestión de miembros',
+      description: 'Gestión de usuarios',
       allowedRoles: ['admin', 'staff'],
     },
     {

@@ -396,7 +396,7 @@ const History = ({ className = '' }) => {
                 </div>
                 <div className="text-center sm:text-left">
                   <h2 className="text-xl font-semibold text-white">{gymConfig.name}</h2>
-                  <p className="text-base text-gray-400">Acceso al Historial</p>
+                  <p className="text-base text-gray-400">Historial</p>
                 </div>
               </div>
               
@@ -446,7 +446,7 @@ const History = ({ className = '' }) => {
         <div className="flex items-center justify-between mb-4">
           <div className="flex-1 min-w-0">
             <h1 className="text-xl sm:text-2xl lg:text-3xl font-semibold text-white truncate">
-              {selectedClient ? `Historial de ${history.find(c => c.clientEmail === selectedClient)?.clientName || 'Cliente'}` : 'Historial de Accesos'}
+              {selectedClient ? `Historial de ${history.find(c => c.clientEmail === selectedClient)?.clientName || 'Cliente'}` : 'Historial'}
             </h1>
             <p className="text-gray-400 mt-1 text-sm sm:text-base">{gymConfig.name}</p>
           </div>

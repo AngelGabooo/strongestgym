@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { db } from '../firebase';
 import { collection, onSnapshot, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
 import SubscriptionStatus from '../molecules/SubscriptionStatus';
@@ -377,9 +378,9 @@ const Dashboard = ({ className = '' }) => {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-gray-100 via-white to-red-200 bg-clip-text text-transparent">
-                Dashboard
+                Control STRONGEST GYM
               </h1>
-              <p className="text-gray-300 mt-1 text-sm sm:text-base">Panel de control - STRONGEST GYM</p>
+              <p className="text-gray-300 mt-1 text-sm sm:text-base">Panel de control</p>
             </div>
             <div className="flex items-center space-x-2 text-xs sm:text-sm text-gray-300">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -553,9 +554,9 @@ const Dashboard = ({ className = '' }) => {
                 Tiempo Real
               </span>
             </h2>
-            <a href="/history" className="text-red-400 hover:text-red-300 text-xs sm:text-sm font-medium transition-colors duration-200">
+            <Link to="/history" className="text-red-400 hover:text-red-300 text-xs sm:text-sm font-medium transition-colors duration-200">
               Ver todos →
-            </a>
+            </Link>
           </div>
 
           {/* Mostrar tabla móvil o desktop según el tamaño de pantalla */}
@@ -564,7 +565,10 @@ const Dashboard = ({ className = '' }) => {
 
         {/* Acceso rápido a funciones */}
         <div className="mt-6 sm:mt-8 grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
-          <button className="bg-gradient-to-br from-gray-950/90 to-red-950/20 backdrop-blur-xl border border-gray-800/50 rounded-2xl p-4 sm:p-6 hover:border-red-700/50 transition-all duration-300 group text-left shadow-2xl hover:shadow-red-900/20">
+          <Link
+            to="/clients"
+            className="bg-gradient-to-br from-gray-950/90 to-red-950/20 backdrop-blur-xl border border-gray-800/50 rounded-2xl p-4 sm:p-6 hover:border-red-700/50 transition-all duration-300 group text-left shadow-2xl hover:shadow-red-900/20"
+          >
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-gray-100 font-semibold text-sm sm:text-base mb-1">Registrar Cliente</h3>
@@ -576,9 +580,12 @@ const Dashboard = ({ className = '' }) => {
                 </svg>
               </div>
             </div>
-          </button>
+          </Link>
 
-          <button className="bg-gradient-to-br from-gray-950/90 to-red-950/20 backdrop-blur-xl border border-gray-800/50 rounded-2xl p-4 sm:p-6 hover:border-red-700/50 transition-all duration-300 group text-left shadow-2xl hover:shadow-red-900/20">
+          <Link
+            to="/reports"
+            className="bg-gradient-to-br from-gray-950/90 to-red-950/20 backdrop-blur-xl border border-gray-800/50 rounded-2xl p-4 sm:p-6 hover:border-red-700/50 transition-all duration-300 group text-left shadow-2xl hover:shadow-red-900/20"
+          >
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-gray-100 font-semibold text-sm sm:text-base mb-1">Generar Reporte</h3>
@@ -590,9 +597,12 @@ const Dashboard = ({ className = '' }) => {
                 </svg>
               </div>
             </div>
-          </button>
+          </Link>
 
-          <button className="bg-gradient-to-br from-gray-950/90 to-red-950/20 backdrop-blur-xl border border-gray-800/50 rounded-2xl p-4 sm:p-6 hover:border-red-700/50 transition-all duration-300 group text-left shadow-2xl hover:shadow-red-900/20">
+          <Link
+            to="/settings"
+            className="bg-gradient-to-br from-gray-950/90 to-red-950/20 backdrop-blur-xl border border-gray-800/50 rounded-2xl p-4 sm:p-6 hover:border-red-700/50 transition-all duration-300 group text-left shadow-2xl hover:shadow-red-900/20"
+          >
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-gray-100 font-semibold text-sm sm:text-base mb-1">Configuración</h3>
@@ -605,7 +615,7 @@ const Dashboard = ({ className = '' }) => {
                 </svg>
               </div>
             </div>
-          </button>
+          </Link>
         </div>
       </div>
     </main>
