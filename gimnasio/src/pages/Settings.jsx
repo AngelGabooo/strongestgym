@@ -33,7 +33,7 @@ const Settings = ({ className = '', ...props }) => {
     version: '2.1.0',
     status: 'online'
   });
-  const [healthChecks, setHealthChecks] = useState({
+  const [healthChecks] = useState({
     database: true,
     storage: true,
     email: true,
@@ -41,25 +41,28 @@ const Settings = ({ className = '', ...props }) => {
   });
 
   useEffect(() => {
-    // Simular estadísticas del sistema
     const updateStats = () => {
-      const members = JSON.parse(localStorage.getItem('members') || '[]');
-      const now = new Date();
-      const activeMembers = members.filter(member => {
-        if (member.membershipEndDate) {
-          return new Date(member.membershipEndDate) > now;
-        }
-        return false;
-      }).length;
+      try {
+        const members = JSON.parse(localStorage.getItem('members') || '[]');
+        const now = new Date();
+        const activeMembers = members.filter(member => {
+          if (member.membershipEndDate) {
+            return new Date(member.membershipEndDate) > now;
+          }
+          return false;
+        }).length;
 
-      setSystemStats({
-        uptime: calculateUptime(),
-        lastBackup: getLastBackup(),
-        totalMembers: members.length,
-        activeMembers: activeMembers,
-        version: '2.1.0',
-        status: 'online'
-      });
+        setSystemStats({
+          uptime: calculateUptime(),
+          lastBackup: getLastBackup(),
+          totalMembers: members.length,
+          activeMembers: activeMembers,
+          version: '2.1.0',
+          status: 'online'
+        });
+      } catch (error) {
+        console.log('Error updating stats:', error);
+      }
     };
 
     updateStats();
@@ -69,27 +72,35 @@ const Settings = ({ className = '', ...props }) => {
   }, []);
 
   const calculateUptime = () => {
-    const startTime = localStorage.getItem('appStartTime');
-    if (!startTime) {
-      localStorage.setItem('appStartTime', Date.now().toString());
+    try {
+      const startTime = localStorage.getItem('appStartTime');
+      if (!startTime) {
+        localStorage.setItem('appStartTime', Date.now().toString());
+        return '0h 0m';
+      }
+      
+      const elapsed = Date.now() - parseInt(startTime);
+      const hours = Math.floor(elapsed / (1000 * 60 * 60));
+      const minutes = Math.floor((elapsed % (1000 * 60 * 60)) / (1000 * 60));
+      return `${hours}h ${minutes}m`;
+    } catch (error) {
       return '0h 0m';
     }
-    
-    const elapsed = Date.now() - parseInt(startTime);
-    const hours = Math.floor(elapsed / (1000 * 60 * 60));
-    const minutes = Math.floor((elapsed % (1000 * 60 * 60)) / (1000 * 60));
-    return `${hours}h ${minutes}m`;
   };
 
   const getLastBackup = () => {
-    const lastBackup = localStorage.getItem('lastBackup');
-    if (!lastBackup) return 'Nunca';
-    
-    const backupDate = new Date(parseInt(lastBackup));
-    return backupDate.toLocaleDateString('es-ES') + ' ' + backupDate.toLocaleTimeString('es-ES', { 
-      hour: '2-digit', 
-      minute: '2-digit' 
-    });
+    try {
+      const lastBackup = localStorage.getItem('lastBackup');
+      if (!lastBackup) return 'Nunca';
+      
+      const backupDate = new Date(parseInt(lastBackup));
+      return backupDate.toLocaleDateString('es-ES') + ' ' + backupDate.toLocaleTimeString('es-ES', { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+      });
+    } catch (error) {
+      return 'Nunca';
+    }
   };
 
   const requestPinAccess = (action) => {
@@ -148,15 +159,12 @@ const Settings = ({ className = '', ...props }) => {
 
   const clearCache = () => {
     try {
-      // Mantener datos importantes
       const membersData = localStorage.getItem('members');
       const paymentsData = localStorage.getItem('payments');
       const settingsData = localStorage.getItem('gymSettings');
       
-      // Limpiar todo
       localStorage.clear();
       
-      // Restaurar datos importantes
       if (membersData) localStorage.setItem('members', membersData);
       if (paymentsData) localStorage.setItem('payments', paymentsData);
       if (settingsData) localStorage.setItem('gymSettings', settingsData);
@@ -332,7 +340,7 @@ const Settings = ({ className = '', ...props }) => {
                 <LockClosedIcon className="w-4 h-4 text-yellow-400" />
               </div>
               <span className="font-semibold">Crear Backup</span>
-              <span className="text-xs opacity-90 text-center">Exportar datos del sistema<br/>⚠️ Requiere autorización</span>
+              <span className="text-xs opacity-90 text-center">Exportar datos del sistema<br />⚠️ Requiere autorización</span>
             </Button>
             
             <Button
@@ -344,7 +352,7 @@ const Settings = ({ className = '', ...props }) => {
                 <LockClosedIcon className="w-4 h-4 text-yellow-400" />
               </div>
               <span className="font-semibold">Limpiar Caché</span>
-              <span className="text-xs opacity-90 text-center">Optimizar rendimiento<br/>⚠️ Requiere autorización</span>
+              <span className="text-xs opacity-90 text-center">Optimizar rendimiento<br />⚠️ Requiere autorización</span>
             </Button>
             
             <Button
@@ -585,5 +593,10 @@ const Settings = ({ className = '', ...props }) => {
       )}
     </main>
   );
-}
+};
+
+Settings.propTypes = {
+  className: PropTypes.string,
+};
+
 export default Settings;

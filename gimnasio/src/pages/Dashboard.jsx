@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { db } from '../firebase'; // Asegúrate de que esta sea la ruta correcta a tu configuración de Firebase
+import { db } from '../firebase';
 import { collection, onSnapshot, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
 import SubscriptionStatus from '../molecules/SubscriptionStatus';
 import PropTypes from 'prop-types';
@@ -22,6 +22,16 @@ const Dashboard = ({ className = '' }) => {
   const [recentAccess, setRecentAccess] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const fetchData = async () => {
     try {
@@ -258,6 +268,100 @@ const Dashboard = ({ className = '' }) => {
         : 'bg-red-900/20 text-red-400 border-red-500/30';
   };
 
+  // Componente para mostrar la tabla en vista móvil
+  const MobileAccessTable = () => (
+    <div className="space-y-3 mt-4">
+      {recentAccess.length > 0 ? (
+        recentAccess.map((access) => (
+          <div key={access.id} className="bg-gradient-to-br from-gray-900/50 to-red-900/20 backdrop-blur-xl border border-gray-800/50 rounded-xl p-4">
+            <div className="flex justify-between items-start">
+              <div className="flex-1">
+                <div className="font-medium text-gray-100 text-sm">{access.clientName}</div>
+                <div className="text-xs text-gray-400 mt-1">{access.clientEmail}</div>
+                <div className="text-xs text-gray-300 mt-2">
+                  {format(parseISO(access.timestamp), 'dd/MM/yyyy HH:mm:ss', { locale: es })}
+                </div>
+                <div className="text-xs text-gray-400">{getRelativeTime(access.timestamp)}</div>
+              </div>
+              <div className="flex flex-col items-end space-y-2">
+                <span className={`px-2 py-1 text-xs font-semibold rounded-full border ${getTypeColor(access)}`}>
+                  {getTypeText(access)}
+                </span>
+                <span className={`px-2 py-1 text-xs font-semibold rounded-full border ${getStatusColor(access.client?.status)}`}>
+                  {getStatusText(access.client?.status)}
+                </span>
+              </div>
+            </div>
+          </div>
+        ))
+      ) : (
+        <div className="text-center text-sm text-gray-300 py-4">
+          No hay accesos recientes
+        </div>
+      )}
+    </div>
+  );
+
+  // Componente para mostrar la tabla en vista desktop
+  const DesktopAccessTable = () => (
+    <div className="overflow-x-auto">
+      <table className="min-w-full divide-y divide-gray-800/50">
+        <thead className="bg-gradient-to-br from-gray-950 to-red-950/30">
+          <tr>
+            <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+              Cliente
+            </th>
+            <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+              Fecha y Hora
+            </th>
+            <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+              Tipo
+            </th>
+            <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+              Estado
+            </th>
+          </tr>
+        </thead>
+        <tbody className="bg-gradient-to-br from-gray-950/80 to-red-950/20 divide-y divide-gray-800/50">
+          {recentAccess.length > 0 ? (
+            recentAccess.map((access) => (
+              <tr key={access.id} className="hover:bg-red-950/50 transition-all duration-200">
+                <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
+                  <div className="text-sm font-medium text-gray-100">{access.clientName}</div>
+                  <div className="text-sm text-gray-300">{access.clientEmail}</div>
+                </td>
+                <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-300">
+                  <div>{format(parseISO(access.timestamp), 'dd/MM/yyyy HH:mm:ss', { locale: es })}</div>
+                  <div className="text-xs text-gray-400">{getRelativeTime(access.timestamp)}</div>
+                </td>
+                <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
+                  <span
+                    className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full border ${getTypeColor(access)}`}
+                  >
+                    {getTypeText(access)}
+                  </span>
+                </td>
+                <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
+                  <span
+                    className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full border ${getStatusColor(access.client?.status)}`}
+                  >
+                    {getStatusText(access.client?.status)}
+                  </span>
+                </td>
+              </tr>
+            ))
+          ) : (
+            <tr>
+              <td colSpan="4" className="px-4 sm:px-6 py-4 text-center text-sm text-gray-300">
+                No hay accesos recientes
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
+
   return (
     <main className={`flex-1 overflow-y-auto p-4 sm:p-6 min-h-screen ${className}`}>
       {/* Elementos decorativos de fondo mejorados */}
@@ -454,62 +558,8 @@ const Dashboard = ({ className = '' }) => {
             </a>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-800/50">
-              <thead className="bg-gradient-to-br from-gray-950 to-red-950/30">
-                <tr>
-                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                    Cliente
-                  </th>
-                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                    Fecha y Hora
-                  </th>
-                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                    Tipo
-                  </th>
-                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                    Estado
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-gradient-to-br from-gray-950/80 to-red-950/20 divide-y divide-gray-800/50">
-                {recentAccess.length > 0 ? (
-                  recentAccess.map((access) => (
-                    <tr key={access.id} className="hover:bg-red-950/50 transition-all duration-200">
-                      <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-100">{access.clientName}</div>
-                        <div className="text-sm text-gray-300">{access.clientEmail}</div>
-                      </td>
-                      <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                        <div>{format(parseISO(access.timestamp), 'dd/MM/yyyy HH:mm:ss', { locale: es })}</div>
-                        <div className="text-xs text-gray-400">{getRelativeTime(access.timestamp)}</div>
-                      </td>
-                      <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
-                        <span
-                          className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full border ${getTypeColor(access)}`}
-                        >
-                          {getTypeText(access)}
-                        </span>
-                      </td>
-                      <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
-                        <span
-                          className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full border ${getStatusColor(access.client?.status)}`}
-                        >
-                          {getStatusText(access.client?.status)}
-                        </span>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan="4" className="px-4 sm:px-6 py-4 text-center text-sm text-gray-300">
-                      No hay accesos recientes
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+          {/* Mostrar tabla móvil o desktop según el tamaño de pantalla */}
+          {isMobile ? <MobileAccessTable /> : <DesktopAccessTable />}
         </div>
 
         {/* Acceso rápido a funciones */}

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import AccessHistory from '../organisms/AccessHistory';
 import PropTypes from 'prop-types';
-import { UsersIcon } from '@heroicons/react/24/outline';
+import { UsersIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import jsPDF from 'jspdf';
@@ -21,7 +21,7 @@ const History = ({ className = '' }) => {
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
   const clientEmail = queryParams.get('clientEmail');
-  const { fetchAccessHistory } = useClients();
+  const { fetchAccessHistory, deleteAllAccessHistory } = useClients();
   const ADMIN_PASSWORD = 'admin123';
 
   const gymConfig = {
@@ -62,7 +62,7 @@ const History = ({ className = '' }) => {
           acc[entry.clientEmail] = {
             clientName: entry.clientName,
             clientEmail: entry.clientEmail,
-            entries: [] // Ensure entries is initialized as an array
+            entries: []
           };
         }
         acc[entry.clientEmail].entries.push({
@@ -120,6 +120,21 @@ const History = ({ className = '' }) => {
     const email = e.target.value;
     setSelectedClient(email || null);
     console.log('Cliente seleccionado:', email);
+  };
+
+  const handleDeleteAllHistory = async () => {
+    if (window.confirm('¿Estás seguro de que deseas eliminar todos los registros del historial? Esta acción no se puede deshacer.')) {
+      try {
+        await deleteAllAccessHistory();
+        setHistory([]);
+        setSelectedClient(null);
+        setSelectedDate(null);
+        alert('Todos los registros han sido eliminados exitosamente.');
+      } catch (err) {
+        console.error('Error al eliminar el historial:', err);
+        alert('Error al eliminar el historial: ' + err.message);
+      }
+    }
   };
 
   const filterEntriesByDateAndClient = (client) => {
@@ -425,18 +440,21 @@ const History = ({ className = '' }) => {
         </div>
         
         <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4 w-full sm:w-auto">
-          <select
-            value={selectedClient || ''}
-            onChange={handleClientChange}
-            className="px-4 py-2 bg-gray-900/50 text-white border border-gray-700/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 w-full sm:w-auto"
-          >
-            <option value="">Todos los clientes</option>
-            {history.map(client => (
-              <option key={client.clientEmail} value={client.clientEmail}>
-                {client.clientName} ({client.clientEmail})
-              </option>
-            ))}
-          </select>
+          <div className="relative">
+            <UsersIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <select
+              value={selectedClient || ''}
+              onChange={handleClientChange}
+              className="pl-10 pr-4 py-2 bg-gray-900/50 text-white border border-gray-700/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 w-full sm:w-64 appearance-none bg-gradient-to-r from-gray-900 to-gray-800/80 shadow-md transition-all duration-200"
+            >
+              <option value="">Todos los clientes</option>
+              {history.map(client => (
+                <option key={client.clientEmail} value={client.clientEmail}>
+                  {client.clientName} ({client.clientEmail})
+                </option>
+              ))}
+            </select>
+          </div>
           <input
             type="date"
             onChange={handleDateChange}
@@ -448,6 +466,13 @@ const History = ({ className = '' }) => {
           >
             <span>📄</span>
             <span>Descargar PDF</span>
+          </button>
+          <button
+            onClick={handleDeleteAllHistory}
+            className="px-6 py-3 bg-gradient-to-r from-red-800 to-red-900 hover:from-red-900 hover:to-red-950 text-white rounded-xl font-semibold transition-all duration-200 shadow-lg shadow-red-600/25 flex items-center space-x-2"
+          >
+            <TrashIcon className="w-5 h-5" />
+            <span>Eliminar Historial</span>
           </button>
         </div>
       </div>
