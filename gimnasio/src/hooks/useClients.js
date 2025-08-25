@@ -70,52 +70,82 @@ export const useClients = () => {
     }
   };
 
-const editClient = async (id, clientData) => {
-  try {
-    console.log('Intentando editar cliente con ID:', id, 'Datos:', clientData);
-    const clientRef = doc(db, 'clients', id);
-    const clientDoc = await getDoc(clientRef, { source: 'server' });
-    if (!clientDoc.exists()) {
-      throw new Error(`No se encontró el documento del cliente con ID: ${id}`);
+  const editClient = async (id, clientData) => {
+    try {
+      console.log('Intentando editar cliente con ID:', id, 'Datos:', clientData);
+      const clientRef = doc(db, 'clients', id);
+      const clientDoc = await getDoc(clientRef, { source: 'server' });
+      if (!clientDoc.exists()) {
+        throw new Error(`No se encontró el documento del cliente con ID: ${id}`);
+      }
+
+      const existingClient = clientDoc.data();
+      const expirationDate = calculateExpirationDate(
+        clientData.paymentDate,
+        clientData.subscriptionType,
+        clientData.visitDays
+      );
+
+      const updatedClient = {
+        ...existingClient,
+        ...clientData,
+        expirationDate,
+        status: calculateSubscriptionStatus(expirationDate),
+      };
+
+      await updateDoc(clientRef, updatedClient);
+      
+      // Actualizar el estado local
+      setClients(prevClients =>
+        prevClients.map(client =>
+          client.id === id ? { id, ...updatedClient } : client
+        )
+      );
+
+      console.log('Cliente actualizado:', updatedClient);
+      return updatedClient;
+    } catch (err) {
+      console.error('Error en editClient:', err.code, err.message);
+      throw new Error(`Error al actualizar el cliente: ${err.message}`);
     }
-
-    const existingClient = clientDoc.data();
-    const expirationDate = calculateExpirationDate(
-      clientData.paymentDate,
-      clientData.subscriptionType,
-      clientData.visitDays
-    );
-
-    const updatedClient = {
-      ...existingClient,
-      ...clientData,
-      expirationDate,
-      status: calculateSubscriptionStatus(expirationDate),
-    };
-
-    await updateDoc(clientRef, updatedClient);
-    
-    // Actualizar el estado local
-    setClients(prevClients =>
-      prevClients.map(client =>
-        client.id === id ? { id, ...updatedClient } : client
-      )
-    );
-
-    console.log('Cliente actualizado:', updatedClient);
-    return updatedClient;
-  } catch (err) {
-    console.error('Error en editClient:', err.code, err.message);
-    throw new Error(`Error al actualizar el cliente: ${err.message}`);
-  }
-};
+  };
 
   const removeClient = async (id) => {
     try {
       console.log('Intentando eliminar cliente con ID:', id);
       const clientRef = doc(db, 'clients', id);
+      
+      // Verificar si el cliente existe
+      const clientDoc = await getDoc(clientRef, { source: 'server' });
+      if (!clientDoc.exists()) {
+        throw new Error(`No se encontró el cliente con ID: ${id}`);
+      }
+
+      const clientData = clientDoc.data();
+
+      // Eliminar registros relacionados en accessHistory
+      const historyQuery = query(
+        collection(db, 'accessHistory'),
+        where('clientEmail', '==', clientData.email)
+      );
+      const historySnapshot = await getDocs(historyQuery, { source: 'server' });
+      const deleteHistoryPromises = historySnapshot.docs.map(doc => deleteDoc(doc.ref));
+      await Promise.all(deleteHistoryPromises);
+      console.log('Registros de accessHistory eliminados para el cliente con email:', clientData.email);
+
+      // Eliminar el cliente
       await deleteDoc(clientRef);
+
+      // Actualizar el estado local
+      setClients(prevClients => {
+        const newClients = prevClients.filter(client => client.id !== id);
+        console.log('Clientes después de eliminación:', newClients);
+        return newClients;
+      });
+
+      // Recargar desde Firestore para asegurar sincronización
       await fetchClients();
+
       console.log('Cliente eliminado con ID:', id);
     } catch (err) {
       console.error('Error en removeClient:', err.code, err.message);

@@ -16,7 +16,8 @@ import {
   ArrowPathIcon,
   FunnelIcon,
   ChevronDownIcon,
-  ChevronUpIcon
+  ChevronUpIcon,
+  TrashIcon
 } from '@heroicons/react/24/outline';
 import { useClients } from '../hooks/useClients';
 import { format, addMonths, addDays } from 'date-fns';
@@ -30,6 +31,8 @@ const Clients = ({ className = '' }) => {
   const [editingClient, setEditingClient] = useState(null);
   const [showRenewModal, setShowRenewModal] = useState(false);
   const [clientToRenew, setClientToRenew] = useState(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [clientToDelete, setClientToDelete] = useState(null);
   const [alertConfig, setAlertConfig] = useState({
     isOpen: false,
     type: 'info',
@@ -50,14 +53,10 @@ const Clients = ({ className = '' }) => {
 
   const showAlert = (type, message, actionButton = null) => {
     setAlertConfig({ isOpen: true, type, message, actionButton });
-
-    // Si el mensaje incluye "renueve su suscripción", cerrar después de 15 segundos
     if (message.includes('renueve su suscripción')) {
       const timer = setTimeout(() => {
         setAlertConfig(prev => ({ ...prev, isOpen: false }));
-      }, 15000); // 15 segundos
-
-      // Limpiar el temporizador al cerrar manualmente o desmontar
+      }, 15000);
       return () => clearTimeout(timer);
     }
   };
@@ -86,7 +85,6 @@ const Clients = ({ className = '' }) => {
     try {
       console.log('Intentando editar cliente con ID:', client.id);
       await refreshClients();
-      // Verificar si el cliente existe en Firestore
       const clientFromFirestore = await findClientByEmail(client.email);
       if (!clientFromFirestore || clientFromFirestore.id !== client.id) {
         throw new Error(`El cliente con ID ${client.id} no existe en Firestore o no coincide con el email ${client.email}`);
@@ -109,15 +107,37 @@ const Clients = ({ className = '' }) => {
     setShowQRModal(true);
   };
 
-  const handleDeleteClient = async (clientId) => {
+  const handleDeleteClient = (client) => {
+    console.log('Cliente seleccionado para eliminar:', client);
+    setClientToDelete(client);
+    setShowDeleteModal(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!clientToDelete) {
+      console.error('No hay cliente seleccionado para eliminar');
+      showAlert('error', 'No se seleccionó ningún cliente para eliminar');
+      setShowDeleteModal(false);
+      return;
+    }
+
     try {
-      console.log('Eliminando cliente con ID:', clientId);
-      await refreshClients();
-      await removeClient(clientId);
-      showAlert('success', 'Cliente eliminado exitosamente');
+      console.log('Confirmando eliminación del cliente con ID:', clientToDelete.id);
+      await removeClient(clientToDelete.id);
+      setShowDeleteModal(false);
+      setClientToDelete(null);
+      showAlert('success', `Cliente ${clientToDelete.name} eliminado exitosamente`);
     } catch (err) {
+      console.error('Error en handleDeleteConfirm:', err.message);
+      setShowDeleteModal(false);
+      setClientToDelete(null);
       showAlert('error', `Error al eliminar cliente: ${err.message}`);
     }
+  };
+
+  const handleDeleteCancel = () => {
+    setShowDeleteModal(false);
+    setClientToDelete(null);
   };
 
   const handleRenewClient = (client) => {
@@ -322,7 +342,6 @@ const Clients = ({ className = '' }) => {
             </div>
           ) : (
             <div className="space-y-3 sm:space-y-6">
-              {/* Filtros para móvil */}
               {isMobile && showFilters && (
                 <div className="bg-black/20 backdrop-blur-xl rounded-2xl border border-gray-800/50 p-4 mb-3">
                   <h3 className="text-sm font-semibold text-white mb-2">Filtros</h3>
@@ -449,6 +468,45 @@ const Clients = ({ className = '' }) => {
               </button>
               <button
                 onClick={handleRenewCancel}
+                className="px-3 py-1.5 bg-gray-800/50 hover:bg-gray-700/50 text-gray-300 rounded-lg border border-gray-600/50 transition-all duration-200 transform hover:scale-105 text-xs"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={showDeleteModal}
+        onClose={handleDeleteCancel}
+        className="bg-black/80 backdrop-blur-xl"
+      >
+        <div className="relative bg-gradient-to-br from-black via-gray-900 to-red-950 rounded-2xl border border-red-800/50 max-w-xs w-full mx-auto shadow-xl shadow-red-900/20 overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-red-600/10 to-transparent"></div>
+          
+          <div className="relative z-10 text-center p-4">
+            <div className="flex items-center justify-center space-x-2 mb-3">
+              <div className="w-6 h-6 bg-gradient-to-r from-red-600 to-red-700 rounded-lg flex items-center justify-center">
+                <TrashIcon className="w-3 h-3 text-white" />
+              </div>
+              <div>
+                <h2 className="text-sm sm:text-base font-bold text-white tracking-tight">Eliminar Cliente</h2>
+                <p className="text-xs text-gray-300">
+                  ¿Estás seguro de que deseas eliminar a {clientToDelete?.name}? Esta acción no se puede deshacer.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex justify-center space-x-2">
+              <button
+                onClick={handleDeleteConfirm}
+                className="px-3 py-1.5 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white rounded-lg font-medium transition-all duration-200 shadow-md shadow-red-500/25 hover:shadow-red-500/30 transform hover:scale-105 text-xs"
+              >
+                Sí, eliminar
+              </button>
+              <button
+                onClick={handleDeleteCancel}
                 className="px-3 py-1.5 bg-gray-800/50 hover:bg-gray-700/50 text-gray-300 rounded-lg border border-gray-600/50 transition-all duration-200 transform hover:scale-105 text-xs"
               >
                 Cancelar
