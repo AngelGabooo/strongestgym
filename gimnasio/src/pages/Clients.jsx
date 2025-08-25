@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import ClientForm from '../molecules/ClientForm';
 import ClientTable from '../organisms/ClientTable';
 import Modal from '../atoms/Modal';
@@ -36,6 +36,16 @@ const Clients = ({ className = '' }) => {
 
   const showAlert = (type, message, actionButton = null) => {
     setAlertConfig({ isOpen: true, type, message, actionButton });
+
+    // Si el mensaje incluye "renueve su suscripción", cerrar después de 15 segundos
+    if (message.includes('renueve su suscripción')) {
+      const timer = setTimeout(() => {
+        setAlertConfig(prev => ({ ...prev, isOpen: false }));
+      }, 15000); // 15 segundos
+
+      // Limpiar el temporizador al cerrar manualmente o desmontar
+      return () => clearTimeout(timer);
+    }
   };
 
   const closeAlert = () => {

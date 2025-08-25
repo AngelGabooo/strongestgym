@@ -59,18 +59,27 @@ const CustomAlertModal = ({ isOpen, onClose, type = 'info', message, actionButto
   return (
     <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/70 backdrop-blur-sm">
       <div className={`relative bg-black/40 backdrop-blur-xl ${styles.bg} ${styles.border} rounded-2xl p-6 max-w-md w-full mx-4 transform transition-all duration-500 scale-100 hover:scale-105 shadow-2xl shadow-${styles.text.split('-')[1]}-500/30 animate-in fade-in-50 zoom-in-95`}>
+        {/* Header con logo del gimnasio */}
+        <div className="text-center mb-4 border-b border-gray-600/30 pb-3">
+          <h2 className="text-lg font-bold bg-gradient-to-r from-red-500 to-orange-500 bg-clip-text text-transparent tracking-wide">
+            💪 STRONGEST GYM
+          </h2>
+        </div>
+
         <button
           onClick={onClose}
           className="absolute top-2 right-2 p-1.5 bg-gray-800/50 hover:bg-red-700/50 rounded-full border border-gray-600/50 text-gray-300 hover:text-white transition-all duration-200 hover:rotate-90"
         >
           <XMarkIcon className="w-5 h-5" />
         </button>
+        
         <div className="text-center">
           <div className="flex items-center justify-center mb-4">
             {styles.icon}
             <h3 className={`ml-2 text-xl font-bold ${styles.text}`}>{styles.title}</h3>
           </div>
           <p className="text-gray-200 text-sm sm:text-base mb-6">{message}</p>
+          
           <div className="flex justify-center space-x-4">
             {actionButton && (
               <button
@@ -87,6 +96,16 @@ const CustomAlertModal = ({ isOpen, onClose, type = 'info', message, actionButto
               Cerrar
             </button>
           </div>
+        </div>
+
+        {/* Footer con créditos del desarrollador */}
+        <div className="mt-4 pt-3 border-t border-gray-600/30 text-center">
+          <p className="text-xs text-gray-400">
+            Página desarrollada por{' '}
+            <span className="bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent font-semibold">
+              Biomey - Angel Gabriel
+            </span>
+          </p>
         </div>
       </div>
     </div>

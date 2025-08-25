@@ -289,21 +289,7 @@ const QRScanner = ({ onScan, className = '', continuousMode = true }) => {
           onClick: () => navigate(`/clients?edit=${client.id}`)
         }
       });
-      setTimeout(resetScanner, 2000);
-      return;
-    }
-
-    if (client.status === 'expiring') {
-      setAlertModal({
-        isOpen: true,
-        type: 'warning',
-        message: 'Su suscripción está por vencer y necesita renovarla.',
-        actionButton: {
-          label: 'Renovar',
-          onClick: () => navigate(`/clients?edit=${client.id}`)
-        }
-      });
-      setTimeout(resetScanner, 2000);
+      setTimeout(resetScanner, 120000); // 2 minutes (120,000ms) for expired subscription alert
       return;
     }
 
@@ -311,11 +297,16 @@ const QRScanner = ({ onScan, className = '', continuousMode = true }) => {
       await registerAccess(client, 'entry');
       setAlertModal({
         isOpen: true,
-        type: 'success',
-        message: 'Entrada registrada exitosamente.',
-        actionButton: null
+        type: client.status === 'expiring' ? 'warning' : 'success',
+        message: client.status === 'expiring' 
+          ? 'Su suscripción está por vencer y necesita renovarla. ¡Entrada registrada exitosamente!' 
+          : 'Entrada registrada exitosamente.',
+        actionButton: client.status === 'expiring' ? {
+          label: 'Renovar',
+          onClick: () => navigate(`/clients?edit=${client.id}`)
+        } : null
       });
-      setTimeout(resetScanner, 1000);
+      setTimeout(resetScanner, 2000); // 2 seconds (2,000ms) for expiring or successful entry
     } catch (err) {
       setAlertModal({
         isOpen: true,
@@ -323,7 +314,7 @@ const QRScanner = ({ onScan, className = '', continuousMode = true }) => {
         message: `Error al registrar entrada: ${err.message}`,
         actionButton: null
       });
-      setTimeout(resetScanner, 2000);
+      setTimeout(resetScanner, 2000); // 2 seconds for error alert
     }
   };
 
@@ -336,7 +327,7 @@ const QRScanner = ({ onScan, className = '', continuousMode = true }) => {
         message: `Salida registrada exitosamente. Tiempo activo: ${accessData.activeTime || 0} minutos`,
         actionButton: null
       });
-      setTimeout(resetScanner, 1000);
+      setTimeout(resetScanner, 1000); // 1 second for exit success alert
     } catch (err) {
       setAlertModal({
         isOpen: true,
@@ -344,7 +335,7 @@ const QRScanner = ({ onScan, className = '', continuousMode = true }) => {
         message: `Error al registrar salida: ${err.message}`,
         actionButton: null
       });
-      setTimeout(resetScanner, 2000);
+      setTimeout(resetScanner, 2000); // 2 seconds for error alert
     }
   };
 

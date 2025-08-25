@@ -4,7 +4,7 @@ import { collection, onSnapshot, query, where, orderBy, limit, getDocs } from 'f
 import SubscriptionStatus from '../molecules/SubscriptionStatus';
 import PropTypes from 'prop-types';
 import { calculateSubscriptionStatus } from '../utils/helpers';
-import { ArrowLeftIcon, ArrowRightIcon } from '@heroicons/react/24/outline';
+import { ArrowLeftIcon, ArrowRightIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { format, parseISO, startOfDay, endOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -17,6 +17,7 @@ const Dashboard = ({ className = '' }) => {
     expiringEntries: '0',
     activeExits: '0',
     expiringExits: '0',
+    deniedAccess: '0',
   });
   const [recentAccess, setRecentAccess] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -51,7 +52,7 @@ const Dashboard = ({ className = '' }) => {
         ...doc.data(),
         client: {
           ...doc.data().client,
-          status: calculateSubscriptionStatus(doc.data().client.expirationDate),
+          status: doc.data().client.status || calculateSubscriptionStatus(doc.data().client.expirationDate),
         },
       }));
 
@@ -60,6 +61,7 @@ const Dashboard = ({ className = '' }) => {
       const expiringEntries = todaysHistory.filter(h => h.type === 'entry' && h.client?.status === 'expiring').length;
       const activeExits = todaysHistory.filter(h => h.type === 'exit' && h.client?.status === 'active').length;
       const expiringExits = todaysHistory.filter(h => h.type === 'exit' && h.client?.status === 'expiring').length;
+      const deniedAccess = todaysHistory.filter(h => h.type === 'denied').length;
 
       setStats({
         activeClients: activeClients.toString(),
@@ -69,6 +71,7 @@ const Dashboard = ({ className = '' }) => {
         expiringEntries: expiringEntries.toString(),
         activeExits: activeExits.toString(),
         expiringExits: expiringExits.toString(),
+        deniedAccess: deniedAccess.toString(),
       });
 
       // Obtener los últimos 5 accesos recientes
@@ -83,7 +86,7 @@ const Dashboard = ({ className = '' }) => {
         ...doc.data(),
         client: {
           ...doc.data().client,
-          status: calculateSubscriptionStatus(doc.data().client.expirationDate),
+          status: doc.data().client.status || calculateSubscriptionStatus(doc.data().client.expirationDate),
         },
       }));
 
@@ -110,7 +113,7 @@ const Dashboard = ({ className = '' }) => {
         ...doc.data(),
         client: {
           ...doc.data().client,
-          status: calculateSubscriptionStatus(doc.data().client.expirationDate),
+          status: doc.data().client.status || calculateSubscriptionStatus(doc.data().client.expirationDate),
         },
       }));
       setRecentAccess(updatedAccess);
@@ -132,7 +135,7 @@ const Dashboard = ({ className = '' }) => {
           ...doc.data(),
           client: {
             ...doc.data().client,
-            status: calculateSubscriptionStatus(doc.data().client.expirationDate),
+            status: doc.data().client.status || calculateSubscriptionStatus(doc.data().client.expirationDate),
           },
         }));
 
@@ -141,6 +144,7 @@ const Dashboard = ({ className = '' }) => {
         const expiringEntries = todaysHistory.filter(h => h.type === 'entry' && h.client?.status === 'expiring').length;
         const activeExits = todaysHistory.filter(h => h.type === 'exit' && h.client?.status === 'active').length;
         const expiringExits = todaysHistory.filter(h => h.type === 'exit' && h.client?.status === 'expiring').length;
+        const deniedAccess = todaysHistory.filter(h => h.type === 'denied').length;
 
         setStats(prev => ({
           ...prev,
@@ -149,6 +153,7 @@ const Dashboard = ({ className = '' }) => {
           expiringEntries: expiringEntries.toString(),
           activeExits: activeExits.toString(),
           expiringExits: expiringExits.toString(),
+          deniedAccess: deniedAccess.toString(),
         }));
       });
 
@@ -186,7 +191,7 @@ const Dashboard = ({ className = '' }) => {
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center">
       <div className="text-center">
-        <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-red-600 border-t-transparent mb-4"></div>
+        <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-red-500 border-t-transparent mb-4"></div>
         <p className="text-gray-100 text-lg">Cargando dashboard...</p>
       </div>
     </div>
@@ -213,6 +218,44 @@ const Dashboard = ({ className = '' }) => {
     if (diffInMinutes < 60) return `Hace ${diffInMinutes} min`;
     if (diffInMinutes < 1440) return `Hace ${Math.floor(diffInMinutes / 60)} hrs`;
     return format(accessTime, 'dd/MM HH:mm', { locale: es });
+  };
+
+  // Función para obtener el texto del tipo diferenciado
+  const getTypeText = (access) => {
+    if (access.type === 'denied') {
+      return 'Denegado (Vencido)';
+    } else if (access.type === 'entry') {
+      return access.client?.status === 'active' ? 'Entrada Activa' : 'Entrada Por Vencer';
+    } else if (access.type === 'exit') {
+      return access.client?.status === 'active' ? 'Salida Activa' : 'Salida Por Vencer';
+    }
+    return access.type;
+  };
+
+  // Función para obtener el color del tipo diferenciado
+  const getTypeColor = (access) => {
+    if (access.type === 'denied') {
+      return 'bg-red-900/30 text-red-400 border-red-700/40';
+    } else if (access.type === 'entry') {
+      return access.client?.status === 'active' ? 'bg-green-900/30 text-green-400 border-green-700/40' : 'bg-yellow-900/30 text-yellow-400 border-yellow-700/40';
+    } else if (access.type === 'exit') {
+      return access.client?.status === 'active' ? 'bg-blue-900/30 text-blue-400 border-blue-700/40' : 'bg-yellow-900/30 text-yellow-400 border-yellow-700/40';
+    }
+    return 'bg-gray-900/30 text-gray-400 border-gray-700/40';
+  };
+
+  // Función para obtener el texto del estado
+  const getStatusText = (status) => {
+    return status === 'active' ? 'Activo' : status === 'expiring' ? 'Por Vencer' : 'Vencido';
+  };
+
+  // Función para obtener el color del estado
+  const getStatusColor = (status) => {
+    return status === 'active' 
+      ? 'bg-green-900/20 text-green-400 border-green-500/30' 
+      : status === 'expiring' 
+        ? 'bg-yellow-900/20 text-yellow-400 border-yellow-500/30' 
+        : 'bg-red-900/20 text-red-400 border-red-500/30';
   };
 
   return (
@@ -281,7 +324,7 @@ const Dashboard = ({ className = '' }) => {
               </div>
               <div className="w-10 sm:w-12 h-10 sm:h-12 bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-200 shadow-lg">
                 <svg className="h-5 sm:h-6 w-5 sm:w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
             </div>
@@ -302,7 +345,7 @@ const Dashboard = ({ className = '' }) => {
               </div>
               <div className="w-10 sm:w-12 h-10 sm:h-12 bg-gradient-to-r from-yellow-600 to-yellow-700 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-200 shadow-lg">
                 <svg className="h-5 sm:h-6 w-5 sm:w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
               </div>
             </div>
@@ -375,6 +418,23 @@ const Dashboard = ({ className = '' }) => {
               </div>
             </div>
           </div>
+
+          {/* Accesos Denegados */}
+          <div className="bg-gradient-to-br from-gray-950/90 to-red-950/30 backdrop-blur-xl border border-gray-800/50 rounded-2xl p-4 sm:p-6 hover:border-red-700/50 transition-all duration-300 group shadow-2xl">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-300 text-xs sm:text-sm font-medium">Accesos Denegados</p>
+                <p className="text-2xl sm:text-3xl font-bold text-gray-100 mt-2">{stats.deniedAccess}</p>
+                <div className="flex items-center mt-2">
+                  <XMarkIcon className="w-4 h-4 text-red-400 mr-1" />
+                  <span className="text-red-400 text-xs sm:text-sm">Intentos fallidos hoy</span>
+                </div>
+              </div>
+              <div className="w-10 sm:w-12 h-10 sm:h-12 bg-gradient-to-r from-red-600 to-red-700 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-200 shadow-lg">
+                <XMarkIcon className="h-5 sm:h-6 w-5 sm:w-6 text-white" />
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Sección de accesos recientes - TABLA */}
@@ -426,27 +486,16 @@ const Dashboard = ({ className = '' }) => {
                       </td>
                       <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
                         <span
-                          className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full border ${
-                            access.type === 'entry'
-                              ? 'bg-green-900/30 text-green-400 border-green-700/40'
-                              : 'bg-blue-900/30 text-blue-400 border-blue-700/40'
-                          }`}
+                          className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full border ${getTypeColor(access)}`}
                         >
-                          {access.type === 'entry' ? 'Entrada' : 'Salida'}
+                          {getTypeText(access)}
                         </span>
                       </td>
                       <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
                         <span
-                          className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full border ${
-                            access.client?.status === 'active'
-                              ? 'bg-green-900/30 text-green-400 border-green-700/40'
-                              : access.client?.status === 'expiring'
-                              ? 'bg-yellow-900/30 text-yellow-400 border-yellow-700/40'
-                              : 'bg-red-900/30 text-red-400 border-red-700/40'
-                          }`}
+                          className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full border ${getStatusColor(access.client?.status)}`}
                         >
-                          {access.client?.status === 'active' ? 'Activo' :
-                           access.client?.status === 'expiring' ? 'Por Vencer' : 'Inactivo'}
+                          {getStatusText(access.client?.status)}
                         </span>
                       </td>
                     </tr>

@@ -58,7 +58,7 @@ const AccessHistory = ({ history, className = '', ...props }) => {
                       }`}
                     >
                       {entry.client.status === 'active' ? 'Activo' :
-                       entry.client.status === 'expiring' ? 'Por Vencer' : 'Inactivo'}
+                       entry.client.status === 'expiring' ? 'Por Vencer' : 'Vencido'}
                     </span>
                   </td>
                 </tr>

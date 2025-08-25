@@ -41,4 +41,4 @@ export const getLocalTimestamp = () => {
   const second = parts.find(p => p.type === 'second').value;
   const millisecond = parts.find(p => p.type === 'fractionalSecond').value.padStart(3, '0');
   return `${year}-${month}-${day}T${hour}:${minute}:${second}.${millisecond}`;
-};
+};  
