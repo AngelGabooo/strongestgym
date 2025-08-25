@@ -7,7 +7,7 @@ const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true); // Agregar estado loading
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   // Verificar el estado de autenticación al cargar la app
@@ -17,8 +17,10 @@ export const AuthProvider = ({ children }) => {
         const userData = {
           uid: firebaseUser.uid,
           email: firebaseUser.email,
-          role: firebaseUser.email === 'gim@gmail.com' ? 'admin' :
-                firebaseUser.email === 'staff@gmail.com' ? 'staff' : 'qrScanner',
+          role:
+            firebaseUser.email === 'gim@gmail.com' ? 'admin' :
+            firebaseUser.email === 'staff@gmail.com' || firebaseUser.email === 'newstaff@gmail.com' ? 'staff' :
+            'qrScanner',
         };
         localStorage.setItem('user', JSON.stringify(userData));
         setUser(userData);
@@ -26,7 +28,7 @@ export const AuthProvider = ({ children }) => {
         localStorage.removeItem('user');
         setUser(null);
       }
-      setLoading(false); // Finaliza el estado de carga
+      setLoading(false);
     });
 
     return () => unsubscribe();
@@ -39,8 +41,10 @@ export const AuthProvider = ({ children }) => {
       const userData = {
         uid: userCredential.user.uid,
         email: userCredential.user.email,
-        role: email === 'gim@gmail.com' ? 'admin' :
-              email === 'staff@gmail.com' ? 'staff' : 'qrScanner',
+        role:
+          email === 'gim@gmail.com' ? 'admin' :
+          email === 'staff@gmail.com' || email === 'newstaff@gmail.com' ? 'staff' :
+          'qrScanner',
       };
       localStorage.setItem('user', JSON.stringify(userData));
       setUser(userData);

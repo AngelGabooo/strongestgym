@@ -5,6 +5,7 @@ import Dashboard from './pages/Dashboard';
 import Clients from './pages/Clients';
 import Scanner from './pages/Scanner';
 import History from './pages/History';
+import Reports from './pages/Reports'; // Nuevo import
 import Settings from './pages/Settings';
 import PrivateRoute from './components/PrivateRoute';
 import { ToastContainer } from 'react-toastify';
@@ -45,6 +46,14 @@ function App() {
             element={
               <PrivateRoute allowedRoles={['admin']}>
                 <History />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/reports"
+            element={
+              <PrivateRoute allowedRoles={['admin']}>
+                <Reports />
               </PrivateRoute>
             }
           />

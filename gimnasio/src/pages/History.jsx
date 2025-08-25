@@ -17,7 +17,7 @@ const History = ({ className = '' }) => {
   const [passwordError, setPasswordError] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [selectedDate, setSelectedDate] = useState(null);
-  
+  const [selectedClient, setSelectedClient] = useState(null);
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
   const clientEmail = queryParams.get('clientEmail');
@@ -44,32 +44,53 @@ const History = ({ className = '' }) => {
   const fetchHistory = async () => {
     try {
       const data = await fetchAccessHistory(clientEmail);
-      
+      console.log('Datos obtenidos de fetchAccessHistory:', data);
+
+      if (!data || !Array.isArray(data) || data.length === 0) {
+        setHistory([]);
+        setLoading(false);
+        setError('No se encontraron registros de acceso.');
+        return;
+      }
+
       const groupedHistory = data.reduce((acc, entry) => {
+        if (!entry.clientEmail || !entry.clientName || !entry.timestamp) {
+          console.warn('Entrada con datos incompletos:', entry);
+          return acc;
+        }
         if (!acc[entry.clientEmail]) {
           acc[entry.clientEmail] = {
             clientName: entry.clientName,
             clientEmail: entry.clientEmail,
-            entries: []
+            entries: [] // Ensure entries is initialized as an array
           };
         }
         acc[entry.clientEmail].entries.push({
-          ...entry,
-          client: { status: entry.client?.status || 'active' }
+          id: entry.id,
+          timestamp: entry.timestamp,
+          type: entry.type,
+          client: { status: entry.client?.status || 'active' },
+          clientName: entry.clientName,
+          clientEmail: entry.clientEmail
         });
         return acc;
       }, {});
 
-      let historyData = Object.values(groupedHistory);
-      
+      const historyData = Object.values(groupedHistory);
+      console.log('Historial agrupado:', historyData);
+
       if (clientEmail) {
-        historyData = historyData.filter(client => client.clientEmail === clientEmail);
+        const filteredData = historyData.filter(client => client.clientEmail === clientEmail);
+        setSelectedClient(clientEmail);
+        setHistory(filteredData);
+      } else {
+        setHistory(historyData);
       }
-      
-      setHistory(historyData);
+
       setLoading(false);
     } catch (err) {
-      setError(err.message);
+      console.error('Error al obtener historial:', err);
+      setError(err.message || 'Error al cargar el historial.');
       setLoading(false);
     }
   };
@@ -95,21 +116,47 @@ const History = ({ className = '' }) => {
     }
   };
 
-  const filterEntriesByDate = (entries) => {
-    if (!selectedDate) return entries;
+  const handleClientChange = (e) => {
+    const email = e.target.value;
+    setSelectedClient(email || null);
+    console.log('Cliente seleccionado:', email);
+  };
 
-    const selectedDateStr = format(selectedDate, 'dd/MM/yyyy', { locale: es });
-    
-    return entries.filter(entry => {
-      const entryDate = parseISO(entry.timestamp);
-      const entryDateStr = format(entryDate, 'dd/MM/yyyy', { locale: es });
-      
-      return entryDateStr === selectedDateStr;
-    });
+  const filterEntriesByDateAndClient = (client) => {
+    let entries = Array.isArray(client.entries) ? client.entries : [];
+    console.log('Entradas antes de filtrar:', entries);
+
+    if (selectedDate) {
+      const selectedDateStr = format(selectedDate, 'dd/MM/yyyy', { locale: es });
+      entries = entries.filter(entry => {
+        try {
+          const entryDate = parseISO(entry.timestamp);
+          const entryDateStr = format(entryDate, 'dd/MM/yyyy', { locale: es });
+          return entryDateStr === selectedDateStr;
+        } catch (err) {
+          console.warn('Error al parsear timestamp en entrada:', entry, err);
+          return false;
+        }
+      });
+    }
+
+    console.log('Entradas después de filtrar por fecha:', entries);
+    return entries;
+  };
+
+  const getFilteredHistory = () => {
+    let filteredHistory = history;
+
+    if (selectedClient) {
+      filteredHistory = history.filter(client => client.clientEmail === selectedClient);
+    }
+
+    console.log('Historial filtrado:', filteredHistory);
+    return filteredHistory;
   };
 
   const hasFilteredEntries = () => {
-    return history.some(client => filterEntriesByDate(client.entries).length > 0);
+    return getFilteredHistory().some(client => filterEntriesByDateAndClient(client).length > 0);
   };
 
   const addGymHeader = async (doc) => {
@@ -168,6 +215,14 @@ const History = ({ className = '' }) => {
       yPosition += 15;
     }
 
+    if (selectedClient) {
+      const client = history.find(c => c.clientEmail === selectedClient);
+      if (client) {
+        doc.text(`Cliente: ${client.clientName}`, 20, yPosition);
+        yPosition += 15;
+      }
+    }
+
     const fechaGeneracion = format(new Date(), "dd/MM/yyyy 'a las' HH:mm", { locale: es });
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
@@ -179,12 +234,12 @@ const History = ({ className = '' }) => {
       doc.setFontSize(16);
       doc.setTextColor(220, 38, 38);
       doc.setFont('helvetica', 'bold');
-      doc.text('⚠️ No hay registros para la fecha seleccionada', 20, yPosition);
+      doc.text('⚠️ No hay registros para los filtros seleccionados', 20, yPosition);
       
       doc.setFontSize(12);
       doc.setTextColor(0, 0, 0);
       doc.setFont('helvetica', 'normal');
-      doc.text('Verifique la fecha seleccionada e intente nuevamente.', 20, yPosition + 15);
+      doc.text('Verifique los filtros seleccionados e intente nuevamente.', 20, yPosition + 15);
       
       const fileName = selectedDate 
         ? `historial_${format(selectedDate, 'yyyy-MM-dd', { locale: es })}_${gymConfig.name.replace(/\s+/g, '_')}.pdf`
@@ -195,8 +250,10 @@ const History = ({ className = '' }) => {
     }
 
     let totalEntries = 0;
-    history.forEach(async (client) => {
-      const filteredEntries = filterEntriesByDate(
+    const filteredHistory = getFilteredHistory();
+    
+    filteredHistory.forEach(client => {
+      const filteredEntries = filterEntriesByDateAndClient(
         client.entries.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
       );
       
@@ -255,7 +312,7 @@ const History = ({ className = '' }) => {
         
         if (yPosition > 250) {
           doc.addPage();
-          yPosition = await addGymHeader(doc);
+          yPosition = addGymHeader(doc);
         }
       }
     });
@@ -274,12 +331,12 @@ const History = ({ className = '' }) => {
       doc.setFontSize(10);
       doc.setFont('helvetica', 'normal');
       doc.text(`Total de registros: ${totalEntries}`, 20, yPosition + 15);
-      doc.text(`Total de clientes: ${history.filter(client => filterEntriesByDate(client.entries).length > 0).length}`, 20, yPosition + 25);
+      doc.text(`Total de clientes: ${filteredHistory.filter(client => filterEntriesByDateAndClient(client).length > 0).length}`, 20, yPosition + 25);
     }
 
     const fileName = selectedDate 
-      ? `Historial_${format(selectedDate, 'yyyy-MM-dd', { locale: es })}_${gymConfig.name.replace(/\s+/g, '_')}.pdf`
-      : `Historial_Completo_${gymConfig.name.replace(/\s+/g, '_')}.pdf`;
+      ? `Historial_${format(selectedDate, 'yyyy-MM-dd', { locale: es })}_${gymConfig.name.replace(/\s+/g, '_')}${selectedClient ? `_${selectedClient.replace(/[@.]/g, '_')}` : ''}.pdf`
+      : `Historial_Completo_${gymConfig.name.replace(/\s+/g, '_')}${selectedClient ? `_${selectedClient.replace(/[@.]/g, '_')}` : ''}.pdf`;
     
     doc.save(fileName);
   };
@@ -359,19 +416,31 @@ const History = ({ className = '' }) => {
 
   return (
     <main className={`flex-1 overflow-y-auto p-6 ${className}`}>
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-semibold text-white">
-            {clientEmail ? `Historial de ${history[0]?.clientName || 'Cliente'}` : 'Historial de Accesos'}
+            {selectedClient ? `Historial de ${history.find(c => c.clientEmail === selectedClient)?.clientName || 'Cliente'}` : 'Historial de Accesos'}
           </h1>
           <p className="text-gray-400 mt-1">{gymConfig.name}</p>
         </div>
         
-        <div className="flex space-x-4">
+        <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4 w-full sm:w-auto">
+          <select
+            value={selectedClient || ''}
+            onChange={handleClientChange}
+            className="px-4 py-2 bg-gray-900/50 text-white border border-gray-700/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 w-full sm:w-auto"
+          >
+            <option value="">Todos los clientes</option>
+            {history.map(client => (
+              <option key={client.clientEmail} value={client.clientEmail}>
+                {client.clientName} ({client.clientEmail})
+              </option>
+            ))}
+          </select>
           <input
             type="date"
             onChange={handleDateChange}
-            className="px-4 py-2 bg-gray-900/50 text-white border border-gray-700/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500"
+            className="px-4 py-2 bg-gray-900/50 text-white border border-gray-700/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 w-full sm:w-auto"
           />
           <button
             onClick={generatePDF}
@@ -384,13 +453,35 @@ const History = ({ className = '' }) => {
       </div>
 
       <div className="space-y-6">
-        {history.length > 0 && hasFilteredEntries() ? (
-          history.map((client) => {
-            const filteredEntries = filterEntriesByDate(
-              client.entries.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
-            );
+        {history.length > 0 ? (
+          getFilteredHistory().map((client) => {
+            const filteredEntries = filterEntriesByDateAndClient(client);
             
-            if (filteredEntries.length === 0) return null;
+            if (filteredEntries.length === 0) {
+              console.log(`No hay entradas para el cliente ${client.clientEmail} después de aplicar filtros`);
+              return (
+                <div
+                  key={client.clientEmail}
+                  className="bg-black/40 backdrop-blur-xl rounded-3xl border border-gray-800/50 p-6"
+                >
+                  <div className="flex items-center space-x-3 mb-4">
+                    <div className="w-10 h-10 bg-gradient-to-r from-red-600 to-red-700 rounded-xl flex items-center justify-center">
+                      <UsersIcon className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-semibold text-white">{client.clientName}</h2>
+                      <p className="text-sm text-gray-400">{client.clientEmail}</p>
+                    </div>
+                    <div className="ml-auto">
+                      <span className="px-3 py-1 bg-red-600/20 text-red-300 rounded-full text-xs font-medium">
+                        0 registros
+                      </span>
+                    </div>
+                  </div>
+                  <p className="text-gray-300 text-center">No hay registros para los filtros seleccionados</p>
+                </div>
+              );
+            }
 
             return (
               <div
@@ -423,13 +514,10 @@ const History = ({ className = '' }) => {
           <div className="text-center py-8 bg-gradient-to-br from-black via-gray-900 to-red-950 rounded-3xl border border-red-800/50 shadow-xl shadow-red-900/20 mx-auto max-w-md p-6">
             <UsersIcon className="w-16 h-16 text-gray-400 mx-auto mb-4" />
             <p className="text-gray-300 text-lg font-medium">
-              {selectedDate ? 'No hay registros para esta fecha' : 'No hay accesos registrados'}
+              No hay accesos registrados
             </p>
             <p className="text-gray-400 text-sm mt-1">
-              {selectedDate 
-                ? `Fecha seleccionada: ${format(selectedDate, 'dd/MM/yyyy', { locale: es })}`
-                : 'Los nuevos accesos aparecerán aquí'
-              }
+              Los nuevos accesos aparecerán aquí
             </p>
           </div>
         )}

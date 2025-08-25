@@ -16,6 +16,7 @@ const Login = ({ className = '', ...props }) => {
   const [pinError, setPinError] = useState('');
   const [pinAttempts, setPinAttempts] = useState(0);
   const [isFullyLocked, setIsFullyLocked] = useState(false);
+  const [showTerms, setShowTerms] = useState(false); // Nuevo estado para el modal
   const { login } = useAuth();
   const navigate = useNavigate();
 
@@ -100,6 +101,11 @@ const Login = ({ className = '', ...props }) => {
     localStorage.setItem('isLocked', 'false');
     localStorage.setItem('pinAttempts', '0');
     localStorage.setItem('isFullyLocked', 'false');
+  };
+
+  // Función para abrir/cerrar el modal de Términos y Condiciones
+  const toggleTermsModal = () => {
+    setShowTerms(!showTerms);
   };
 
   return (
@@ -336,11 +342,35 @@ const Login = ({ className = '', ...props }) => {
 
           <div className="mt-8 pt-6 border-t border-gray-700/50">
             <p className="text-center text-xs text-gray-400">
-              © 2025 Strongest Gym.
+              © 2025 Strongest Gym - Biomey - Angel Gabriel.{' '}
+              <button
+                onClick={toggleTermsModal}
+                className="text-red-400 hover:text-red-300 underline transition-colors duration-200"
+              >
+                Términos y Condiciones
+              </button>
             </p>
           </div>
         </div>
       </div>
+
+      {/* Modal de Términos y Condiciones */}
+      {showTerms && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-black/80 backdrop-blur-xl rounded-2xl shadow-2xl border border-gray-700/50 p-8 max-w-md w-full mx-4">
+            <h2 className="text-2xl font-bold text-white mb-4">Términos y Condiciones</h2>
+            <p className="text-gray-300 text-sm mb-6">
+              Todas las políticas de Strongest Gym están protegidas. Los correos electrónicos y datos personales de nuestros usuarios están encriptados para garantizar la máxima seguridad y privacidad.
+            </p>
+            <button
+              onClick={toggleTermsModal}
+              className="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-xl shadow-lg text-white font-medium bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 focus:ring-offset-black transition-all duration-200 transform hover:scale-[1.02]"
+            >
+              Cerrar
+            </button>
+          </div>
+        </div>
+      )}
 
       {isLoading && (
         <div className="fixed bottom-0 left-0 right-0 h-1 bg-gray-900">

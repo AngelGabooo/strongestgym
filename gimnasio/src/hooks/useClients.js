@@ -256,6 +256,18 @@ export const useClients = () => {
     }
   };
 
+  // Nueva función para reportes: fetch todo el historial sin filtro
+  const fetchAllAccessHistory = async () => {
+    try {
+      const historyRef = collection(db, 'accessHistory');
+      const snapshot = await getDocs(historyRef, { source: 'server' });
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (err) {
+      console.error('Error en fetchAllAccessHistory:', err.code, err.message);
+      throw new Error(`Error al obtener todo el historial de acceso: ${err.message}`);
+    }
+  };
+
   return {
     clients,
     loading,
@@ -268,5 +280,6 @@ export const useClients = () => {
     getTodayAccessRecords,
     fetchAccessHistory,
     findClientByEmail,
+    fetchAllAccessHistory, // Nueva
   };
 };
