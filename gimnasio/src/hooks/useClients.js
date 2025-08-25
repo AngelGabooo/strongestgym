@@ -25,7 +25,7 @@ export const useClients = () => {
       );
       
       console.log('Clientes cargados:', uniqueData);
-      const idCount = data.reduce((acc, client) => {
+      const idCount = uniqueData.reduce((acc, client) => {
         acc[client.id] = (acc[client.id] || 0) + 1;
         return acc;
       }, {});
@@ -70,69 +70,53 @@ export const useClients = () => {
     }
   };
 
-  const editClient = async (id, clientData) => {
-    try {
-      console.log('Intentando editar cliente con ID:', id, 'Datos:', clientData);
-      let clientRef = doc(db, 'clients', id);
-      let clientDoc = await getDoc(clientRef, { source: 'server' });
-      if (!clientDoc.exists()) {
-        const q = query(collection(db, 'clients'), where('id', '==', id));
-        const snapshot = await getDocs(q, { source: 'server' });
-        if (snapshot.empty) {
-          throw new Error(`No se encontró el documento del cliente con ID: ${id}`);
-        }
-        clientRef = doc(db, 'clients', snapshot.docs[0].id);
-        clientDoc = snapshot.docs[0];
-        console.log('Cliente encontrado usando customId:', id, 'ID de Firestore:', snapshot.docs[0].id);
-      }
-
-      const existingClient = clients.find(client => client.id === id);
-      if (!existingClient) {
-        console.warn('Cliente no encontrado en la lista local, usando datos de Firestore');
-      }
-      
-      const expirationDate = calculateExpirationDate(
-        clientData.paymentDate,
-        clientData.subscriptionType,
-        clientData.visitDays
-      );
-      const updatedClient = {
-        ...clientData,
-        id: clientDoc.id,
-        pin: existingClient?.pin || clientDoc.data().pin,
-        qrCode: existingClient?.qrCode || clientDoc.data().qrCode,
-        expirationDate,
-        status: calculateSubscriptionStatus(expirationDate),
-      };
-      await updateDoc(clientRef, updatedClient);
-      await fetchClients();
-      console.log('Cliente actualizado:', updatedClient);
-      return updatedClient;
-    } catch (err) {
-      console.error('Error en editClient:', err.code, err.message);
-      throw new Error(`Error al actualizar el cliente: ${err.message}`);
+const editClient = async (id, clientData) => {
+  try {
+    console.log('Intentando editar cliente con ID:', id, 'Datos:', clientData);
+    const clientRef = doc(db, 'clients', id);
+    const clientDoc = await getDoc(clientRef, { source: 'server' });
+    if (!clientDoc.exists()) {
+      throw new Error(`No se encontró el documento del cliente con ID: ${id}`);
     }
-  };
+
+    const existingClient = clientDoc.data();
+    const expirationDate = calculateExpirationDate(
+      clientData.paymentDate,
+      clientData.subscriptionType,
+      clientData.visitDays
+    );
+
+    const updatedClient = {
+      ...existingClient,
+      ...clientData,
+      expirationDate,
+      status: calculateSubscriptionStatus(expirationDate),
+    };
+
+    await updateDoc(clientRef, updatedClient);
+    
+    // Actualizar el estado local
+    setClients(prevClients =>
+      prevClients.map(client =>
+        client.id === id ? { id, ...updatedClient } : client
+      )
+    );
+
+    console.log('Cliente actualizado:', updatedClient);
+    return updatedClient;
+  } catch (err) {
+    console.error('Error en editClient:', err.code, err.message);
+    throw new Error(`Error al actualizar el cliente: ${err.message}`);
+  }
+};
 
   const removeClient = async (id) => {
     try {
       console.log('Intentando eliminar cliente con ID:', id);
       const clientRef = doc(db, 'clients', id);
-      const clientDoc = await getDoc(clientRef, { source: 'server' });
-      if (!clientDoc.exists()) {
-        const q = query(collection(db, 'clients'), where('id', '==', id));
-        const snapshot = await getDocs(q, { source: 'server' });
-        if (snapshot.empty) {
-          throw new Error(`No se encontró el documento del cliente con ID: ${id}`);
-        }
-        const docRef = doc(db, 'clients', snapshot.docs[0].id);
-        await deleteDoc(docRef);
-        console.log('Cliente eliminado usando customId:', id);
-      } else {
-        await deleteDoc(clientRef);
-        console.log('Cliente eliminado con ID de Firestore:', id);
-      }
+      await deleteDoc(clientRef);
       await fetchClients();
+      console.log('Cliente eliminado con ID:', id);
     } catch (err) {
       console.error('Error en removeClient:', err.code, err.message);
       throw new Error(`Error al eliminar el cliente: ${err.message}`);

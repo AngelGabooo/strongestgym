@@ -43,6 +43,7 @@ const ClientForm = ({ onSave, initialData = null, onCancel, className = '', isMo
         visitDays: initialData.visitDays || 10,
       };
       
+      console.log('Cargando datos iniciales en ClientForm:', initialFormData);
       setFormData(initialFormData);
     }
   }, [initialData]);
@@ -144,7 +145,6 @@ const ClientForm = ({ onSave, initialData = null, onCancel, className = '', isMo
       
       let savedClient;
       if (initialData?.id) {
-        // Check if the email is unchanged or belongs to the same client
         const existingClient = await findClientByEmail(clientData.email);
         if (existingClient && existingClient.id !== initialData.id) {
           throw new Error('El email ya está registrado por otro cliente');
@@ -169,7 +169,6 @@ const ClientForm = ({ onSave, initialData = null, onCancel, className = '', isMo
           visitDays: 10,
         });
       }
-      
     } catch (error) {
       console.error('Error al guardar cliente:', error);
       setErrors({ 
@@ -181,7 +180,6 @@ const ClientForm = ({ onSave, initialData = null, onCancel, className = '', isMo
 
   return (
     <div className={`${className}`}>
-      {/* Indicador de vista móvil */}
       {isMobile && (
         <div className="flex items-center justify-center mb-4 p-2 bg-blue-900/20 rounded-lg border border-blue-700/30">
           <DevicePhoneMobileIcon className="w-4 h-4 text-blue-400 mr-2" />
@@ -190,7 +188,6 @@ const ClientForm = ({ onSave, initialData = null, onCancel, className = '', isMo
       )}
       
       <form onSubmit={handleSubmit} noValidate className="space-y-4 sm:space-y-6">
-        {/* Información Personal */}
         <div className="bg-gray-900/30 backdrop-blur-sm rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-gray-700/30">
           <h3 className="text-base sm:text-lg font-semibold text-white flex items-center mb-3 sm:mb-4">
             <UserIcon className="w-4 h-4 sm:w-5 sm:h-5 text-red-500 mr-2" />
@@ -285,7 +282,6 @@ const ClientForm = ({ onSave, initialData = null, onCancel, className = '', isMo
           </div>
         </div>
 
-        {/* Información de Suscripción */}
         <div className="bg-gray-900/30 backdrop-blur-sm rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-gray-700/30">
           <h3 className="text-base sm:text-lg font-semibold text-white flex items-center mb-3 sm:mb-4">
             <CurrencyDollarIcon className="w-4 h-4 sm:w-5 sm:h-5 text-red-500 mr-2" />
@@ -420,7 +416,6 @@ const ClientForm = ({ onSave, initialData = null, onCancel, className = '', isMo
           </div>
         </div>
         
-        {/* Mensaje de error general */}
         {errors.form && (
           <div className="bg-red-900/30 backdrop-blur-sm border border-red-500/50 rounded-xl p-3">
             <div className="flex items-center">
@@ -430,7 +425,6 @@ const ClientForm = ({ onSave, initialData = null, onCancel, className = '', isMo
           </div>
         )}
         
-        {/* Botones de acción */}
         <div className={`flex ${isMobile ? 'flex-col-reverse space-y-reverse space-y-2' : 'justify-end space-x-3'} pt-4 sm:pt-6`}>
           {onCancel && (
             <button
