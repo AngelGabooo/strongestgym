@@ -13,7 +13,10 @@ import {
   SparklesIcon,
   ArrowLeftIcon,
   XMarkIcon,
-  ArrowPathIcon
+  ArrowPathIcon,
+  FunnelIcon,
+  ChevronDownIcon,
+  ChevronUpIcon
 } from '@heroicons/react/24/outline';
 import { useClients } from '../hooks/useClients';
 import { format, addMonths, addDays } from 'date-fns';
@@ -33,6 +36,17 @@ const Clients = ({ className = '' }) => {
     message: '',
     actionButton: null,
   });
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [showFilters, setShowFilters] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const showAlert = (type, message, actionButton = null) => {
     setAlertConfig({ isOpen: true, type, message, actionButton });
@@ -156,7 +170,7 @@ const Clients = ({ className = '' }) => {
   if (loading) {
     return (
       <div className="flex h-screen bg-gradient-to-br from-black via-gray-900 to-black">
-        <div className="flex-1 flex items-center justify-center">
+        <div className="flex-1 flex items-center justify-center p-4">
           <div className="text-center">
             <div className="w-16 h-16 sm:w-20 sm:h-20 border-4 border-red-500/30 border-t-red-500 rounded-full animate-spin mx-auto mb-4"></div>
             <p className="text-gray-300 text-lg sm:text-xl">Cargando clientes...</p>
@@ -169,16 +183,16 @@ const Clients = ({ className = '' }) => {
   if (error) {
     return (
       <div className="flex h-screen bg-gradient-to-br from-black via-gray-900 to-black">
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center bg-red-900/20 border border-red-500/30 rounded-2xl p-6 sm:p-8">
+        <div className="flex-1 flex items-center justify-center p-4">
+          <div className="text-center bg-red-900/20 border border-red-500/30 rounded-2xl p-6 sm:p-8 w-full max-w-md">
             <div className="w-16 h-16 sm:w-20 sm:h-20 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
               <span className="text-red-400 text-2xl sm:text-3xl">⚠</span>
             </div>
             <h2 className="text-xl sm:text-2xl font-semibold text-red-400 mb-2">Error al cargar</h2>
-            <p className="text-sm sm:text-base text-red-300">{error}</p>
+            <p className="text-sm sm:text-base text-red-300 mb-4">{error}</p>
             <button
               onClick={handleRefreshClients}
-              className="mt-4 px-4 py-2 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg hover:from-red-700 hover:to-red-800"
+              className="px-4 py-2 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg hover:from-red-700 hover:to-red-800 w-full sm:w-auto"
             >
               Reintentar
             </button>
@@ -190,26 +204,26 @@ const Clients = ({ className = '' }) => {
 
   return (
     <main className={`flex-1 overflow-y-auto ${className}`}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="relative px-4 sm:px-6 pt-6 sm:pt-8 pb-6">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+        <div className="relative px-3 sm:px-6 pt-4 sm:pt-8 pb-4">
           <div className="absolute inset-0 bg-gradient-to-r from-red-600/10 to-transparent"></div>
           <div className="relative">
-            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 sm:gap-6">
-              <div className="flex items-center space-x-3 sm:space-x-4">
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3 sm:gap-6">
+              <div className="flex items-center space-x-2 sm:space-x-4">
                 {showForm && (
                   <button
                     onClick={() => setShowForm(false)}
                     className="p-2 sm:p-3 bg-gray-800/50 hover:bg-gray-700/50 border border-gray-700/50 rounded-xl transition-all duration-200"
                   >
-                    <ArrowLeftIcon className="w-5 h-5 sm:w-6 sm:h-6 text-gray-400" />
+                    <ArrowLeftIcon className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
                   </button>
                 )}
                 <div>
-                  <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white flex items-center">
-                    <UsersIcon className="w-6 h-6 sm:w-8 sm:h-8 text-red-500 mr-2 sm:mr-3" />
+                  <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-white flex items-center">
+                    <UsersIcon className="w-5 h-5 sm:w-6 sm:h-6 text-red-500 mr-2 sm:mr-3" />
                     {showForm ? (editingClient ? 'Editar Cliente' : 'Nuevo Cliente') : 'Gestión de Clientes'}
                   </h1>
-                  <p className="text-sm sm:text-base text-gray-400 mt-1">
+                  <p className="text-xs sm:text-sm text-gray-400 mt-1">
                     {showForm 
                       ? (editingClient ? 'Actualiza la información del cliente' : 'Registra un nuevo miembro del gimnasio')
                       : `${clients.length} clientes registrados`
@@ -218,20 +232,32 @@ const Clients = ({ className = '' }) => {
                 </div>
               </div>
               
-              <div className="flex items-center space-x-2 sm:space-x-3">
+              <div className="flex items-center space-x-2 sm:space-x-3 w-full sm:w-auto mt-3 sm:mt-0">
+                {!showForm && isMobile && (
+                  <button
+                    onClick={() => setShowFilters(!showFilters)}
+                    className="px-3 py-2 bg-gray-800/50 hover:bg-gray-700/50 text-gray-300 rounded-lg border border-gray-600/50 transition-all duration-200 flex items-center space-x-1"
+                  >
+                    <FunnelIcon className="w-4 h-4" />
+                    <span>Filtros</span>
+                    {showFilters ? <ChevronUpIcon className="w-4 h-4" /> : <ChevronDownIcon className="w-4 h-4" />}
+                  </button>
+                )}
+                
                 <button
                   onClick={handleRefreshClients}
-                  className="px-4 py-2 bg-gray-800/50 hover:bg-gray-700/50 text-gray-300 rounded-lg border border-gray-600/50 transition-all duration-200"
+                  className="px-3 py-2 bg-gray-800/50 hover:bg-gray-700/50 text-gray-300 rounded-lg border border-gray-600/50 transition-all duration-200 flex items-center space-x-1 text-xs sm:text-sm"
                 >
-                  <ArrowPathIcon className="w-5 h-5 inline-block mr-2" />
-                  Recargar
+                  <ArrowPathIcon className="w-4 h-4" />
+                  <span className="hidden sm:inline">Recargar</span>
                 </button>
+                
                 <button
                   onClick={() => {
                     setEditingClient(null);
                     setShowForm(!showForm);
                   }}
-                  className={`px-4 sm:px-6 py-2 sm:py-3 rounded-xl font-medium transition-all duration-200 flex items-center space-x-2 text-sm sm:text-base ${
+                  className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl font-medium transition-all duration-200 flex items-center space-x-1 text-xs sm:text-sm ${
                     showForm 
                       ? 'bg-gray-800/50 hover:bg-gray-700/50 border border-gray-700/50 text-gray-300 hover:text-white'
                       : 'bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white shadow-lg shadow-red-500/25 hover:shadow-red-500/40'
@@ -239,13 +265,13 @@ const Clients = ({ className = '' }) => {
                 >
                   {showForm ? (
                     <>
-                      <ListBulletIcon className="w-5 h-5 sm:w-6 sm:h-6" />
-                      <span>Ver Lista</span>
+                      <ListBulletIcon className="w-4 h-4" />
+                      <span className="hidden sm:inline">Ver Lista</span>
                     </>
                   ) : (
                     <>
-                      <PlusIcon className="w-5 h-5 sm:w-6 sm:h-6" />
-                      <span>Nuevo Cliente</span>
+                      <PlusIcon className="w-4 h-4" />
+                      <span className="hidden sm:inline">Nuevo</span>
                     </>
                   )}
                 </button>
@@ -254,12 +280,12 @@ const Clients = ({ className = '' }) => {
           </div>
         </div>
 
-        <div className="px-4 sm:px-6 pb-6">
+        <div className="px-3 sm:px-6 pb-4">
           {showForm ? (
             <div className="max-w-4xl mx-auto">
-              <div className="mb-4 sm:mb-6">
-                <div className="flex items-center space-x-2 text-sm sm:text-base text-gray-400">
-                  <UsersIcon className="w-4 h-4 sm:w-5 sm:h-5" />
+              <div className="mb-3 sm:mb-6">
+                <div className="flex items-center space-x-1 text-xs sm:text-sm text-gray-400">
+                  <UsersIcon className="w-3 h-3 sm:w-4 sm:h-4" />
                   <span>Clientes</span>
                   <span>/</span>
                   <span className="text-red-400">
@@ -268,16 +294,16 @@ const Clients = ({ className = '' }) => {
                 </div>
               </div>
 
-              <div className="bg-black/20 backdrop-blur-xl rounded-3xl border border-gray-800/50 p-6 sm:p-8">
-                <div className="flex items-center space-x-3 mb-4 sm:mb-6">
-                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-red-600 to-red-700 rounded-xl flex items-center justify-center">
-                    <SparklesIcon className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+              <div className="bg-black/20 backdrop-blur-xl rounded-2xl sm:rounded-3xl border border-gray-800/50 p-4 sm:p-6">
+                <div className="flex items-center space-x-2 sm:space-x-3 mb-3 sm:mb-6">
+                  <div className="w-6 h-6 sm:w-8 sm:h-8 bg-gradient-to-r from-red-600 to-red-700 rounded-lg sm:rounded-xl flex items-center justify-center">
+                    <SparklesIcon className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
                   </div>
                   <div>
-                    <h2 className="text-lg sm:text-xl font-semibold text-white">
+                    <h2 className="text-base sm:text-lg font-semibold text-white">
                       {editingClient ? 'Actualizar Información' : 'Información del Cliente'}
                     </h2>
-                    <p className="text-sm sm:text-base text-gray-400">
+                    <p className="text-xs sm:text-sm text-gray-400">
                       Completa todos los campos requeridos
                     </p>
                   </div>
@@ -290,17 +316,39 @@ const Clients = ({ className = '' }) => {
                     setShowForm(false);
                     setEditingClient(null);
                   }}
+                  isMobile={isMobile}
                 />
               </div>
             </div>
           ) : (
-            <div className="space-y-4 sm:space-y-6">
+            <div className="space-y-3 sm:space-y-6">
+              {/* Filtros para móvil */}
+              {isMobile && showFilters && (
+                <div className="bg-black/20 backdrop-blur-xl rounded-2xl border border-gray-800/50 p-4 mb-3">
+                  <h3 className="text-sm font-semibold text-white mb-2">Filtros</h3>
+                  <div className="grid grid-cols-2 gap-2">
+                    <select className="px-2 py-1 bg-gray-800/50 text-white border border-gray-700/50 rounded-lg text-xs">
+                      <option>Estado</option>
+                      <option>Activo</option>
+                      <option>Por Vencer</option>
+                      <option>Vencido</option>
+                    </select>
+                    <select className="px-2 py-1 bg-gray-800/50 text-white border border-gray-700/50 rounded-lg text-xs">
+                      <option>Tipo Suscripción</option>
+                      <option>Mensual</option>
+                      <option>Por Visitas</option>
+                    </select>
+                  </div>
+                </div>
+              )}
+              
               <ClientTable 
                 clients={clients} 
                 onViewQR={handleViewQR}
                 onEdit={handleEditClient}
                 onDelete={handleDeleteClient}
                 onRenew={handleRenewClient}
+                isMobile={isMobile}
               />
             </div>
           )}
@@ -313,38 +361,38 @@ const Clients = ({ className = '' }) => {
         className="bg-black/80 backdrop-blur-xl"
       >
         {selectedClient && (
-          <div className="relative bg-gradient-to-br from-black via-gray-900 to-red-950 rounded-2xl border border-red-800/50 max-w-md w-full mx-auto shadow-xl shadow-red-900/20 overflow-hidden">
+          <div className="relative bg-gradient-to-br from-black via-gray-900 to-red-950 rounded-2xl border border-red-800/50 max-w-xs w-full mx-auto shadow-xl shadow-red-900/20 overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-r from-red-600/10 to-transparent"></div>
             
             <button
               onClick={() => setShowQRModal(false)}
-              className="absolute top-2 right-2 z-20 p-1.5 bg-gray-800/50 hover:bg-red-700/50 rounded-full border border-gray-600/50 text-gray-300 hover:text-white transition-all duration-200"
+              className="absolute top-2 right-2 z-20 p-1 bg-gray-800/50 hover:bg-red-700/50 rounded-full border border-gray-600/50 text-gray-300 hover:text-white transition-all duration-200"
             >
-              <XMarkIcon className="w-4 h-4 sm:w-5 sm:h-5" />
+              <XMarkIcon className="w-3 h-3 sm:w-4 sm:h-4" />
             </button>
 
-            <div className="relative z-10 text-center p-4 sm:p-6">
-              <div className="flex items-center justify-center space-x-2 mb-4">
-                <div className="w-8 h-8 bg-gradient-to-r from-red-600 to-red-700 rounded-lg flex items-center justify-center">
-                  <QrCodeIcon className="w-4 h-4 text-white animate-pulse" />
+            <div className="relative z-10 text-center p-3 sm:p-4">
+              <div className="flex items-center justify-center space-x-1 sm:space-x-2 mb-3">
+                <div className="w-6 h-6 bg-gradient-to-r from-red-600 to-red-700 rounded-lg flex items-center justify-center">
+                  <QrCodeIcon className="w-3 h-3 sm:w-4 sm:h-4 text-white animate-pulse" />
                 </div>
                 <div>
-                  <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight">Código QR</h2>
+                  <h2 className="text-sm sm:text-base font-bold text-white tracking-tight">Código QR</h2>
                   <p className="text-xs text-red-400">Gimnasio Strongest</p>
                 </div>
               </div>
 
-              <div className="mb-4">
-                <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-red-600 to-red-700 rounded-full flex items-center justify-center border-3 border-red-600/30 mx-auto mb-3 shadow-md shadow-red-500/20 text-white text-2xl font-bold">
+              <div className="mb-3">
+                <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-red-600 to-red-700 rounded-full flex items-center justify-center border-2 border-red-600/30 mx-auto mb-2 shadow-md shadow-red-500/20 text-white text-lg sm:text-xl font-bold">
                   {selectedClient.name.trim().charAt(0).toUpperCase() || '?'}
                 </div>
-                <h3 className="text-base sm:text-lg font-semibold text-white">{selectedClient.name}</h3>
-                <p className="text-xs sm:text-sm text-gray-300">{selectedClient.email}</p>
-                <p className="text-xs sm:text-sm text-gray-300 mt-1">PIN: <span className="font-semibold text-red-400">{selectedClient.pin}</span></p>
+                <h3 className="text-sm sm:text-base font-semibold text-white truncate px-2">{selectedClient.name}</h3>
+                <p className="text-xs text-gray-300 truncate px-2">{selectedClient.email}</p>
+                <p className="text-xs text-gray-300 mt-1">PIN: <span className="font-semibold text-red-400">{selectedClient.pin}</span></p>
               </div>
 
-              <div className="mb-4">
-                <span className={`inline-flex items-center px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium border shadow-sm ${
+              <div className="mb-3">
+                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border shadow-sm ${
                   selectedClient.status === 'active' ? 'text-green-400 bg-green-900/20 border-green-500/30' :
                   selectedClient.status === 'expiring' ? 'text-yellow-400 bg-yellow-900/20 border-yellow-500/30' :
                   'text-red-400 bg-red-900/20 border-red-500/30'
@@ -355,14 +403,15 @@ const Clients = ({ className = '' }) => {
                 </span>
               </div>
 
-              <div className="mb-4">
+              <div className="mb-3">
                 <QRCodeDisplay 
                   value={JSON.stringify({ qrCode: selectedClient.qrCode, pin: selectedClient.pin })} 
-                  size={140}
+                  size={isMobile ? 120 : 140}
                   withDownload={true}
                   withWhatsApp={true}
                   clientName={selectedClient.name}
                   onShowAlert={showAlert}
+                  isMobile={isMobile}
                 />
               </div>
             </div>
@@ -375,34 +424,34 @@ const Clients = ({ className = '' }) => {
         onClose={handleRenewCancel}
         className="bg-black/80 backdrop-blur-xl"
       >
-        <div className="relative bg-gradient-to-br from-black via-gray-900 to-red-950 rounded-2xl border border-red-800/50 max-w-sm w-full mx-auto shadow-xl shadow-red-900/20 overflow-hidden">
+        <div className="relative bg-gradient-to-br from-black via-gray-900 to-red-950 rounded-2xl border border-red-800/50 max-w-xs w-full mx-auto shadow-xl shadow-red-900/20 overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-r from-red-600/10 to-transparent"></div>
           
-          <div className="relative z-10 text-center p-4 sm:p-6">
-            <div className="flex items-center justify-center space-x-2 mb-4">
-              <div className="w-8 h-8 bg-gradient-to-r from-red-600 to-red-700 rounded-lg flex items-center justify-center">
-                <ArrowPathIcon className="w-4 h-4 text-white" />
+          <div className="relative z-10 text-center p-4">
+            <div className="flex items-center justify-center space-x-2 mb-3">
+              <div className="w-6 h-6 bg-gradient-to-r from-red-600 to-red-700 rounded-lg flex items-center justify-center">
+                <ArrowPathIcon className="w-3 h-3 text-white" />
               </div>
               <div>
-                <h2 className="text-base sm:text-lg font-bold text-white tracking-tight">Renovar Suscripción</h2>
-                <p className="text-xs sm:text-sm text-gray-300">
+                <h2 className="text-sm sm:text-base font-bold text-white tracking-tight">Renovar Suscripción</h2>
+                <p className="text-xs text-gray-300">
                   ¿Desea renovar la suscripción de {clientToRenew?.name}?
                 </p>
               </div>
             </div>
 
-            <div className="flex justify-center space-x-3">
+            <div className="flex justify-center space-x-2">
               <button
                 onClick={handleRenewConfirm}
-                className="px-4 py-2 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white rounded-lg font-medium transition-all duration-200 shadow-md shadow-green-500/25 hover:shadow-green-500/30 transform hover:scale-105 text-sm"
+                className="px-3 py-1.5 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white rounded-lg font-medium transition-all duration-200 shadow-md shadow-green-500/25 hover:shadow-green-500/30 transform hover:scale-105 text-xs"
               >
-                Sí
+                Sí, renovar
               </button>
               <button
                 onClick={handleRenewCancel}
-                className="px-4 py-2 bg-gray-800/50 hover:bg-gray-700/50 text-gray-300 rounded-lg border border-gray-600/50 transition-all duration-200 transform hover:scale-105 text-sm"
+                className="px-3 py-1.5 bg-gray-800/50 hover:bg-gray-700/50 text-gray-300 rounded-lg border border-gray-600/50 transition-all duration-200 transform hover:scale-105 text-xs"
               >
-                No
+                Cancelar
               </button>
             </div>
           </div>
@@ -415,6 +464,7 @@ const Clients = ({ className = '' }) => {
         type={alertConfig.type}
         message={alertConfig.message}
         actionButton={alertConfig.actionButton}
+        isMobile={isMobile}
       />
     </main> 
   );  

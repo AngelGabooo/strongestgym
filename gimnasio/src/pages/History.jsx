@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import AccessHistory from '../organisms/AccessHistory';
 import PropTypes from 'prop-types';
-import { UsersIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { UsersIcon, TrashIcon, CalendarIcon, DocumentArrowDownIcon, FunnelIcon } from '@heroicons/react/24/outline';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import jsPDF from 'jspdf';
@@ -18,6 +18,7 @@ const History = ({ className = '' }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [selectedDate, setSelectedDate] = useState(null);
   const [selectedClient, setSelectedClient] = useState(null);
+  const [showFilters, setShowFilters] = useState(false); // Nuevo estado para mostrar/ocultar filtros en móvil
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
   const clientEmail = queryParams.get('clientEmail');
@@ -356,9 +357,18 @@ const History = ({ className = '' }) => {
     doc.save(fileName);
   };
 
+  // Función para limpiar filtros
+  const clearFilters = () => {
+    setSelectedDate(null);
+    setSelectedClient(null);
+    // Limpiar el input de fecha
+    const dateInput = document.querySelector('input[type="date"]');
+    if (dateInput) dateInput.value = '';
+  };
+
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center">
+      <div className="flex h-screen items-center justify-center p-4">
         <div className="animate-spin rounded-full h-12 w-12 border-4 border-red-500 border-t-transparent"></div>
       </div>
     );
@@ -366,8 +376,8 @@ const History = ({ className = '' }) => {
 
   if (error) {
     return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="bg-red-950/80 backdrop-blur-xl border border-red-800/50 rounded-2xl p-6 text-center shadow-2xl">
+      <div className="flex h-screen items-center justify-center p-4">
+        <div className="bg-red-950/80 backdrop-blur-xl border border-red-800/50 rounded-2xl p-6 text-center shadow-2xl max-w-sm w-full">
           <p className="text-red-200 text-lg">Error: {error}</p>
         </div>
       </div>
@@ -376,15 +386,15 @@ const History = ({ className = '' }) => {
 
   if (!isAuthenticated) {
     return (
-      <main className={`flex-1 overflow-y-auto p-6 ${className}`}>
+      <main className={`flex-1 overflow-y-auto p-4 sm:p-6 ${className}`}>
         <div className="max-w-md mx-auto">
           <div className="bg-black/40 backdrop-blur-xl rounded-3xl border border-gray-800/50 p-6">
             <div className="text-center">
-              <div className="flex items-center justify-center space-x-3 mb-6">
+              <div className="flex flex-col sm:flex-row items-center justify-center space-y-3 sm:space-y-0 sm:space-x-3 mb-6">
                 <div className="w-12 h-12 bg-gradient-to-r from-red-600 to-red-700 rounded-xl flex items-center justify-center">
                   <UsersIcon className="w-6 h-6 text-white" />
                 </div>
-                <div>
+                <div className="text-center sm:text-left">
                   <h2 className="text-xl font-semibold text-white">{gymConfig.name}</h2>
                   <p className="text-base text-gray-400">Acceso al Historial</p>
                 </div>
@@ -406,7 +416,7 @@ const History = ({ className = '' }) => {
                   <p className="text-red-400 text-sm mb-4">{passwordError}</p>
                 )}
                 
-                <div className="flex justify-center space-x-4">
+                <div className="flex flex-col sm:flex-row justify-center space-y-3 sm:space-y-0 sm:space-x-4">
                   <button
                     type="submit"
                     className="px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white rounded-xl font-semibold transition-all duration-200 shadow-lg shadow-red-500/25"
@@ -430,80 +440,115 @@ const History = ({ className = '' }) => {
   }
 
   return (
-    <main className={`flex-1 overflow-y-auto p-6 ${className}`}>
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-semibold text-white">
-            {selectedClient ? `Historial de ${history.find(c => c.clientEmail === selectedClient)?.clientName || 'Cliente'}` : 'Historial de Accesos'}
-          </h1>
-          <p className="text-gray-400 mt-1">{gymConfig.name}</p>
+    <main className={`flex-1 overflow-y-auto p-3 sm:p-6 ${className}`}>
+      {/* Header con título */}
+      <div className="mb-6">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex-1 min-w-0">
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-semibold text-white truncate">
+              {selectedClient ? `Historial de ${history.find(c => c.clientEmail === selectedClient)?.clientName || 'Cliente'}` : 'Historial de Accesos'}
+            </h1>
+            <p className="text-gray-400 mt-1 text-sm sm:text-base">{gymConfig.name}</p>
+          </div>
+          
+          {/* Botón de filtros para móvil */}
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className="sm:hidden ml-4 p-2 bg-gray-800/50 hover:bg-gray-700/50 text-gray-300 rounded-xl border border-gray-600/50 transition-all duration-200"
+          >
+            <FunnelIcon className="w-5 h-5" />
+          </button>
         </div>
         
-        <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4 w-full sm:w-auto">
-          <div className="relative">
-            <UsersIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <select
-              value={selectedClient || ''}
-              onChange={handleClientChange}
-              className="pl-10 pr-4 py-2 bg-gray-900/50 text-white border border-gray-700/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 w-full sm:w-64 appearance-none bg-gradient-to-r from-gray-900 to-gray-800/80 shadow-md transition-all duration-200"
-            >
-              <option value="">Todos los clientes</option>
-              {history.map(client => (
-                <option key={client.clientEmail} value={client.clientEmail}>
-                  {client.clientName} ({client.clientEmail})
-                </option>
-              ))}
-            </select>
+        {/* Filtros - Ocultos en móvil por defecto, siempre visibles en desktop */}
+        <div className={`${showFilters ? 'block' : 'hidden'} sm:block`}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            {/* Selector de cliente */}
+            <div className="relative">
+              <UsersIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <select
+                value={selectedClient || ''}
+                onChange={handleClientChange}
+                className="pl-10 pr-8 py-2.5 bg-gray-900/50 text-white border border-gray-700/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 w-full appearance-none bg-gradient-to-r from-gray-900 to-gray-800/80 shadow-md transition-all duration-200 text-sm"
+              >
+                <option value="">Todos los clientes</option>
+                {history.map(client => (
+                  <option key={client.clientEmail} value={client.clientEmail}>
+                    {client.clientName}
+                  </option>
+                ))}
+              </select>
+            </div>
+            
+            {/* Selector de fecha */}
+            <div className="relative">
+              <CalendarIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="date"
+                onChange={handleDateChange}
+                className="pl-10 pr-4 py-2.5 bg-gray-900/50 text-white border border-gray-700/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 w-full text-sm"
+              />
+            </div>
+            
+            {/* Botones de acción */}
+            <div className="flex space-x-2 col-span-1 sm:col-span-2 lg:col-span-2">
+              <button
+                onClick={generatePDF}
+                className="flex-1 px-4 py-2.5 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white rounded-xl font-medium transition-all duration-200 shadow-lg shadow-red-500/25 flex items-center justify-center space-x-2 text-sm"
+              >
+                <DocumentArrowDownIcon className="w-4 h-4" />
+                <span className="hidden xs:inline">Descargar </span>
+                <span>PDF</span>
+              </button>
+              
+              <button
+                onClick={clearFilters}
+                className="px-4 py-2.5 bg-gray-800/50 hover:bg-gray-700/50 text-gray-300 rounded-xl border border-gray-600/50 transition-all duration-200 text-sm font-medium"
+              >
+                Limpiar
+              </button>
+              
+              <button
+                onClick={handleDeleteAllHistory}
+                className="px-4 py-2.5 bg-gradient-to-r from-red-800 to-red-900 hover:from-red-900 hover:to-red-950 text-white rounded-xl font-medium transition-all duration-200 shadow-lg shadow-red-600/25 flex items-center justify-center text-sm"
+              >
+                <TrashIcon className="w-4 h-4" />
+                <span className="hidden sm:inline ml-1">Eliminar</span>
+              </button>
+            </div>
           </div>
-          <input
-            type="date"
-            onChange={handleDateChange}
-            className="px-4 py-2 bg-gray-900/50 text-white border border-gray-700/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 w-full sm:w-auto"
-          />
-          <button
-            onClick={generatePDF}
-            className="px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white rounded-xl font-semibold transition-all duration-200 shadow-lg shadow-red-500/25 flex items-center space-x-2"
-          >
-            <span>📄</span>
-            <span>Descargar PDF</span>
-          </button>
-          <button
-            onClick={handleDeleteAllHistory}
-            className="px-6 py-3 bg-gradient-to-r from-red-800 to-red-900 hover:from-red-900 hover:to-red-950 text-white rounded-xl font-semibold transition-all duration-200 shadow-lg shadow-red-600/25 flex items-center space-x-2"
-          >
-            <TrashIcon className="w-5 h-5" />
-            <span>Eliminar Historial</span>
-          </button>
         </div>
       </div>
 
-      <div className="space-y-6">
+      {/* Contenido del historial */}
+      <div className="space-y-4 sm:space-y-6">
         {history.length > 0 ? (
           getFilteredHistory().map((client) => {
             const filteredEntries = filterEntriesByDateAndClient(client);
             
             if (filteredEntries.length === 0) {
-              console.log(`No hay entradas para el cliente ${client.clientEmail} después de aplicar filtros`);
               return (
                 <div
                   key={client.clientEmail}
-                  className="bg-black/40 backdrop-blur-xl rounded-3xl border border-gray-800/50 p-6"
+                  className="bg-black/40 backdrop-blur-xl rounded-2xl sm:rounded-3xl border border-gray-800/50 p-4 sm:p-6"
                 >
-                  <div className="flex items-center space-x-3 mb-4">
-                    <div className="w-10 h-10 bg-gradient-to-r from-red-600 to-red-700 rounded-xl flex items-center justify-center">
-                      <UsersIcon className="w-5 h-5 text-white" />
+                  <div className="flex flex-col sm:flex-row sm:items-center space-y-3 sm:space-y-0 sm:space-x-3 mb-4">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-red-600 to-red-700 rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0">
+                        <UsersIcon className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <h2 className="text-base sm:text-lg font-semibold text-white truncate">{client.clientName}</h2>
+                        <p className="text-xs sm:text-sm text-gray-400 truncate">{client.clientEmail}</p>
+                      </div>
                     </div>
-                    <div>
-                      <h2 className="text-lg font-semibold text-white">{client.clientName}</h2>
-                      <p className="text-sm text-gray-400">{client.clientEmail}</p>
-                    </div>
-                    <div className="ml-auto">
+                    <div className="flex-shrink-0">
                       <span className="px-3 py-1 bg-red-600/20 text-red-300 rounded-full text-xs font-medium">
                         0 registros
                       </span>
                     </div>
                   </div>
-                  <p className="text-gray-300 text-center">No hay registros para los filtros seleccionados</p>
+                  <p className="text-gray-300 text-center text-sm">No hay registros para los filtros seleccionados</p>
                 </div>
               );
             }
@@ -511,17 +556,19 @@ const History = ({ className = '' }) => {
             return (
               <div
                 key={client.clientEmail}
-                className="bg-black/40 backdrop-blur-xl rounded-3xl border border-gray-800/50 p-6"
+                className="bg-black/40 backdrop-blur-xl rounded-2xl sm:rounded-3xl border border-gray-800/50 p-4 sm:p-6"
               >
-                <div className="flex items-center space-x-3 mb-4">
-                  <div className="w-10 h-10 bg-gradient-to-r from-red-600 to-red-700 rounded-xl flex items-center justify-center">
-                    <UsersIcon className="w-5 h-5 text-white" />
+                <div className="flex flex-col sm:flex-row sm:items-center space-y-3 sm:space-y-0 sm:space-x-3 mb-4">
+                  <div className="flex items-center space-x-3 flex-1 min-w-0">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-red-600 to-red-700 rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0">
+                      <UsersIcon className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <h2 className="text-base sm:text-lg font-semibold text-white truncate">{client.clientName}</h2>
+                      <p className="text-xs sm:text-sm text-gray-400 truncate">{client.clientEmail}</p>
+                    </div>
                   </div>
-                  <div>
-                    <h2 className="text-lg font-semibold text-white">{client.clientName}</h2>
-                    <p className="text-sm text-gray-400">{client.clientEmail}</p>
-                  </div>
-                  <div className="ml-auto">
+                  <div className="flex-shrink-0">
                     <span className="px-3 py-1 bg-red-600/20 text-red-300 rounded-full text-xs font-medium">
                       {filteredEntries.length} registro{filteredEntries.length !== 1 ? 's' : ''}
                     </span>
@@ -536,9 +583,9 @@ const History = ({ className = '' }) => {
             );
           })
         ) : (
-          <div className="text-center py-8 bg-gradient-to-br from-black via-gray-900 to-red-950 rounded-3xl border border-red-800/50 shadow-xl shadow-red-900/20 mx-auto max-w-md p-6">
-            <UsersIcon className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-300 text-lg font-medium">
+          <div className="text-center py-8 bg-gradient-to-br from-black via-gray-900 to-red-950 rounded-2xl sm:rounded-3xl border border-red-800/50 shadow-xl shadow-red-900/20 mx-auto max-w-md p-6">
+            <UsersIcon className="w-12 h-12 sm:w-16 sm:h-16 text-gray-400 mx-auto mb-4" />
+            <p className="text-gray-300 text-base sm:text-lg font-medium">
               No hay accesos registrados
             </p>
             <p className="text-gray-400 text-sm mt-1">
