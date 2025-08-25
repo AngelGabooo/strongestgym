@@ -24,8 +24,8 @@ const Reports = () => {
   const [error, setError] = useState(null);
 
   // Precios asumidos (ajusta según tu negocio)
-  const MONTHLY_PRICE = 100; // Precio suscripción mensual
-  const VISIT_PRICE = 10;   // Precio por día de visita
+  const MONTHLY_PRICE = 300; // Precio suscripción mensual
+  const VISIT_PRICE = 30;   // Precio por día de visita
 
   useEffect(() => {
     const loadData = async () => {
