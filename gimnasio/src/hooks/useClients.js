@@ -61,6 +61,7 @@ export const useClients = () => {
         status: calculateSubscriptionStatus(expirationDate),
       };
       const docRef = await addDoc(collection(db, 'clients'), newClient);
+      // Esperar un pequeño retraso antes de recargar los clientes
       await new Promise(resolve => setTimeout(resolve, 1000));
       await fetchClients();
       return { ...newClient, id: docRef.id };
@@ -141,9 +142,9 @@ export const useClients = () => {
 
   const registerAccess = async (client, type) => {
     try {
-      console.log('Registrando acceso:', { client, type });
+      console.log('Registrando acceso:', { client, type }); // Log para depuración
       const clientStatus = calculateSubscriptionStatus(client.expirationDate);
-      console.log('Estado del cliente:', clientStatus);
+      console.log('Estado del cliente:', clientStatus); // Log para verificar estado
 
       if (type === 'entry') {
         if (clientStatus === 'expired') {
@@ -156,7 +157,7 @@ export const useClients = () => {
             client: { status: clientStatus },
             reason: 'Suscripción vencida'
           };
-          console.log('Guardando acceso denegado:', accessData);
+          console.log('Guardando acceso denegado:', accessData); // Log para verificar
           await addDoc(collection(db, 'accessHistory'), accessData);
           throw new Error('Acceso denegado: Suscripción vencida. Por favor, renueve su suscripción.');
         } else {
@@ -168,13 +169,13 @@ export const useClients = () => {
             type: 'entry',
             client: { status: clientStatus }
           };
-          console.log('Guardando entrada:', accessData);
+          console.log('Guardando entrada:', accessData); // Log para verificar
           await addDoc(collection(db, 'accessHistory'), accessData);
           return accessData;
         }
       } else if (type === 'exit') {
         const todayRecords = await getTodayAccessRecords(client.email);
-        console.log('Registros de hoy:', todayRecords);
+        console.log('Registros de hoy:', todayRecords); // Log para verificar
         const todayEntries = todayRecords.filter(r => r.type === 'entry');
         if (todayEntries.length === 0) {
           throw new Error('No hay una entrada registrada hoy para registrar una salida.');
@@ -192,7 +193,7 @@ export const useClients = () => {
           client: { status: clientStatus },
           activeTime
         };
-        console.log('Guardando salida:', accessData);
+        console.log('Guardando salida:', accessData); // Log para verificar
         await addDoc(collection(db, 'accessHistory'), accessData);
         return accessData;
       }
@@ -255,6 +256,7 @@ export const useClients = () => {
     }
   };
 
+  // Nueva función para reportes: fetch todo el historial sin filtro
   const fetchAllAccessHistory = async () => {
     try {
       const historyRef = collection(db, 'accessHistory');
@@ -263,19 +265,6 @@ export const useClients = () => {
     } catch (err) {
       console.error('Error en fetchAllAccessHistory:', err.code, err.message);
       throw new Error(`Error al obtener todo el historial de acceso: ${err.message}`);
-    }
-  };
-
-  const deleteAllAccessHistory = async () => {
-    try {
-      const historyRef = collection(db, 'accessHistory');
-      const snapshot = await getDocs(historyRef, { source: 'server' });
-      const deletePromises = snapshot.docs.map(doc => deleteDoc(doc.ref));
-      await Promise.all(deletePromises);
-      console.log('Todos los registros de acceso han sido eliminados');
-    } catch (err) {
-      console.error('Error en deleteAllAccessHistory:', err.code, err.message);
-      throw new Error(`Error al eliminar el historial de acceso: ${err.message}`);
     }
   };
 
@@ -291,7 +280,6 @@ export const useClients = () => {
     getTodayAccessRecords,
     fetchAccessHistory,
     findClientByEmail,
-    fetchAllAccessHistory,
-    deleteAllAccessHistory,
+    fetchAllAccessHistory, // Nueva
   };
 };
