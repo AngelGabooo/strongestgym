@@ -132,10 +132,10 @@ const MaintenancePage = () => {
           <div className="mb-8">
             <div className="flex justify-between text-sm text-gray-300 mb-3">
               <span className="font-semibold">Progreso del Mantenimiento</span>
-              <span className="font-bold text-red-400">75%</span>
+              <span className="font-bold text-red-400">98%</span>
             </div>
             <div className="w-full bg-gray-800 rounded-full h-4 overflow-hidden shadow-inner">
-              <div className="bg-gradient-to-r from-red-600 via-red-500 to-red-400 h-4 rounded-full shadow-lg transition-all duration-1000 ease-out animate-pulse" style={{width: '75%'}}>
+              <div className="bg-gradient-to-r from-red-600 via-red-500 to-red-400 h-4 rounded-full shadow-lg transition-all duration-1000 ease-out animate-pulse" style={{width: '98%'}}>
                 <div className="h-full bg-gradient-to-r from-transparent via-white/20 to-transparent animate-ping"></div>
               </div>
             </div>
@@ -186,7 +186,7 @@ const MaintenancePage = () => {
         <div className="text-gray-400 text-sm sm:text-base space-y-2">
           <div className="bg-black/30 backdrop-blur-sm rounded-2xl p-4 border border-gray-800/50">
             <p className="font-bold text-white mb-1">© 2025 STRONGEST Gym - Villa Comaltitlán</p>
-            <p className="text-gray-300">Desarrollado por <span className="text-red-400 font-semibold">Biomey</span> - Angel Gabriel García Samayoa</p>
+            <p className="text-gray-300">Desarrollado por <span className="text-red-400 font-semibold">Biome </span> - Angel Gabriel García Samayoa</p>
             <p className="mt-2 text-xs">Última actualización: {new Date().toLocaleString('es-ES', {
               year: 'numeric',
               month: 'long',
