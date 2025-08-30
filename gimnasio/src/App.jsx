@@ -15,7 +15,7 @@ import 'react-toastify/dist/ReactToastify.css';
 // VARIABLE DE CONTROL DE MANTENIMIENTO
 // Cambia este valor a true para activar el modo mantenimiento
 // Cambia este valor a false para desactivar el modo mantenimiento
-const MAINTENANCE_MODE = true
+const MAINTENANCE_MODE = false
 
 function App() {
   // Si el modo mantenimiento está activado, mostrar solo la página de mantenimiento
