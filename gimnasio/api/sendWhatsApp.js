@@ -10,10 +10,10 @@ export default async function handler(req, res) {
 
   // Validar datos recibidos
   if (!phoneNumber || !clientName || !qrImage || !message) {
-    return res.status(400).json({ error: 'Faltan datos requeridos' });
+    return res.status(400).json({ error: 'Faltan datos requeridos: phoneNumber, clientName, qrImage, message' });
   }
 
-  // Configuración de Twilio (credenciales desde variables de entorno)
+  // Configuración de Twilio desde variables de entorno
   const accountSid = process.env.TWILIO_ACCOUNT_SID;
   const authToken = process.env.TWILIO_AUTH_TOKEN;
   const fromNumber = process.env.TWILIO_WHATSAPP_NUMBER;
@@ -38,4 +38,4 @@ export default async function handler(req, res) {
     console.error('Error al enviar mensaje:', error);
     return res.status(500).json({ error: `Error al enviar el código QR: ${error.message}` });
   }
-}
+}   
