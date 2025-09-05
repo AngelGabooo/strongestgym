@@ -85,14 +85,21 @@ const QRCodeDisplay = ({ value, size = 200, className = '', withDownload = false
   };
 
   const shareOnWhatsApp = async () => {
-    if (!phoneNumber) {
-      onShowAlert?.('error', 'No se proporcionó un número de teléfono para enviar el QR');
-      return;
-    }
+  if (!phoneNumber) {
+    onShowAlert?.('error', 'No se proporcionó un número de teléfono para enviar el QR');
+    return;
+  }
 
-    const clientNameFormatted = clientName || 'Cliente';
+  // Validar que el número tenga 10 dígitos
+  const phoneRegex = /^\d{10}$/;
+  if (!phoneRegex.test(phoneNumber)) {
+    onShowAlert?.('error', 'El número de teléfono debe tener exactamente 10 dígitos');
+    return;
+  }
 
-    const message = `¡Hola ${clientNameFormatted}! 
+  const clientNameFormatted = clientName || 'Cliente';
+
+  const message = `¡Hola ${clientNameFormatted}! 
 
 Te comparto tu QR para que des asistencia al ingresar al gimnasio.
 Tu QR contiene tu fecha de caducidad de tu mensualidad.
@@ -102,101 +109,101 @@ Así como contar con una toalla para limpiar dónde has estado.
 
 ¡Te esperamos para que sigas alcanzando tus metas en Gimnasio Strongest Villa Comaltitlán!`;
 
-    try {
-      const originalCanvas = qrRef.current.querySelector('canvas');
-      if (!originalCanvas) {
-        onShowAlert?.('error', 'Error al generar el código QR para compartir por WhatsApp');
-        return;
-      }
-
-      const combinedCanvas = document.createElement('canvas');
-      const scaleFactor = 6;
-      const padding = 25 * scaleFactor;
-      const nameHeight = 45 * scaleFactor;
-      const logoHeight = 35 * scaleFactor;
-      const highResSize = size * scaleFactor;
-
-      combinedCanvas.width = highResSize + padding * 2;
-      combinedCanvas.height = highResSize + nameHeight + logoHeight + padding * 3;
-
-      const ctx = combinedCanvas.getContext('2d');
-      ctx.imageSmoothingEnabled = false;
-
-      const gradient = ctx.createLinearGradient(0, 0, combinedCanvas.width, combinedCanvas.height);
-      gradient.addColorStop(0, '#FFFFFF');
-      gradient.addColorStop(1, selectedColorScheme.bg);
-      ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, combinedCanvas.width, combinedCanvas.height);
-
-      ctx.drawImage(originalCanvas, padding, padding + logoHeight, highResSize, highResSize);
-
-      ctx.fillStyle = selectedColorScheme.fg;
-      ctx.font = `bold ${14 * scaleFactor}px Arial`;
-      ctx.textAlign = 'center';
-      ctx.fillText('GIMNASIO STRONGEST', combinedCanvas.width / 2, padding + (logoHeight * 0.6));
-
-      ctx.font = `bold ${12 * scaleFactor}px Arial`;
-      const clientY = highResSize + padding * 2 + logoHeight + (nameHeight * 0.5);
-      const maxWidth = highResSize * 0.8;
-      const words = clientNameFormatted.toUpperCase().split(' ');
-      let line = '';
-      let lineY = clientY;
-
-      for (let i = 0; i < words.length; i++) {
-        const testLine = line + words[i] + ' ';
-        const metrics = ctx.measureText(testLine);
-        const testWidth = metrics.width;
-        if (testWidth > maxWidth && i > 0) {
-          ctx.fillText(line.trim(), combinedCanvas.width / 2, lineY);
-          line = words[i] + ' ';
-          lineY += 15 * scaleFactor;
-        } else {
-          line = testLine;
-        }
-      }
-      ctx.fillText(line.trim(), combinedCanvas.width / 2, lineY);
-
-      ctx.fillStyle = selectedColorScheme.fg;
-      ctx.font = `${10 * scaleFactor}px Arial`;
-      ctx.fillText(`QR ${selectedColorScheme.name}`, combinedCanvas.width / 2, lineY + (18 * scaleFactor));
-
-      const imageData = combinedCanvas.toDataURL('image/png', 1.0);
-
-      // Enviar solicitud a la API Route
-      const response = await fetch('/api/sendWhatsApp', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          phoneNumber,
-          clientName: clientNameFormatted,
-          qrImage: imageData,
-          message,
-        }),
-      });
-
-      const result = await response.json();
-
-      if (response.ok) {
-        onShowAlert?.('success', result.message);
-      } else {
-        throw new Error(result.error);
-      }
-    } catch (error) {
-      console.error('Error al enviar por WhatsApp:', error);
-      onShowAlert?.('error', `Error al enviar el código QR: ${error.message}`);
+  try {
+    const originalCanvas = qrRef.current.querySelector('canvas');
+    if (!originalCanvas) {
+      onShowAlert?.('error', 'Error al generar el código QR para compartir por WhatsApp');
+      return;
     }
-  };
+
+    const combinedCanvas = document.createElement('canvas');
+    const scaleFactor = 6;
+    const padding = 25 * scaleFactor;
+    const nameHeight = 45 * scaleFactor;
+    const logoHeight = 35 * scaleFactor;
+    const highResSize = size * scaleFactor;
+
+    combinedCanvas.width = highResSize + padding * 2;
+    combinedCanvas.height = highResSize + nameHeight + logoHeight + padding * 3;
+
+    const ctx = combinedCanvas.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
+
+    const gradient = ctx.createLinearGradient(0, 0, combinedCanvas.width, combinedCanvas.height);
+    gradient.addColorStop(0, '#FFFFFF');
+    gradient.addColorStop(1, selectedColorScheme.bg);
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, combinedCanvas.width, combinedCanvas.height);
+
+    ctx.drawImage(originalCanvas, padding, padding + logoHeight, highResSize, highResSize);
+
+    ctx.fillStyle = selectedColorScheme.fg;
+    ctx.font = `bold ${14 * scaleFactor}px Arial`;
+    ctx.textAlign = 'center';
+    ctx.fillText('GIMNASIO STRONGEST', combinedCanvas.width / 2, padding + (logoHeight * 0.6));
+
+    ctx.font = `bold ${12 * scaleFactor}px Arial`;
+    const clientY = highResSize + padding * 2 + logoHeight + (nameHeight * 0.5);
+    const maxWidth = highResSize * 0.8;
+    const words = clientNameFormatted.toUpperCase().split(' ');
+    let line = '';
+    let lineY = clientY;
+
+    for (let i = 0; i < words.length; i++) {
+      const testLine = line + words[i] + ' ';
+      const metrics = ctx.measureText(testLine);
+      const testWidth = metrics.width;
+      if (testWidth > maxWidth && i > 0) {
+        ctx.fillText(line.trim(), combinedCanvas.width / 2, lineY);
+        line = words[i] + ' ';
+        lineY += 15 * scaleFactor;
+      } else {
+        line = testLine;
+      }
+    }
+    ctx.fillText(line.trim(), combinedCanvas.width / 2, lineY);
+
+    ctx.fillStyle = selectedColorScheme.fg;
+    ctx.font = `${10 * scaleFactor}px Arial`;
+    ctx.fillText(`QR ${selectedColorScheme.name}`, combinedCanvas.width / 2, lineY + (18 * scaleFactor));
+
+    const imageData = combinedCanvas.toDataURL('image/png', 1.0);
+
+    // Enviar solicitud a la API Route
+    const response = await fetch('/api/sendWhatsApp', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        phoneNumber: `+52${phoneNumber}`, // Agregar el código de país para Twilio
+        clientName: clientNameFormatted,
+        qrImage: imageData,
+        message,
+      }),
+    });
+
+    const result = await response.json();
+
+    if (response.ok) {
+      onShowAlert?.('success', result.message);
+    } else {
+      throw new Error(result.error);
+    }
+  } catch (error) {
+    console.error('Error al enviar por WhatsApp:', error);
+    onShowAlert?.('error', `Error al enviar el código QR: ${error.message}`);
+  }
+};
 
   return (
-    <div 
-      className={`relative flex flex-col items-center justify-center bg-gradient-to-br from-black via-gray-900 to-red-950 rounded-xl border border-red-800/50 shadow-lg shadow-red-900/30 w-full overflow-hidden ${className}`} 
+    <div
+      className={`relative flex flex-col items-center justify-center bg-gradient-to-br from-black via-gray-900 to-red-950 rounded-xl border border-red-800/50 shadow-lg shadow-red-900/30 w-full overflow-hidden ${className}`}
       ref={qrRef}
       {...props}
     >
       <div className={`absolute inset-0 bg-gradient-to-r ${selectedColorScheme.gradient.replace('600', '600/10').replace('800', '800/5')}`}></div>
-      
+
       <div className="relative z-10 flex flex-col items-center justify-center w-full p-4">
         <div className="mb-3 text-center w-full">
           <div className="flex items-center justify-center space-x-2 mb-2">
@@ -208,22 +215,22 @@ Así como contar con una toalla para limpiar dónde has estado.
         </div>
 
         <div className={`p-3 bg-gradient-to-br ${selectedColorScheme.bg === '#FFFFFF' ? 'from-white to-gray-50' : `from-white to-[${selectedColorScheme.bg}]`} rounded-xl shadow-xl shadow-red-500/25 border-3 border-red-600/40 mb-3 transition-all duration-300 hover:scale-105 hover:shadow-2xl`}>
-          <QRCodeSVG 
-            value={value} 
-            size={size} 
+          <QRCodeSVG
+            value={value}
+            size={size}
             level="H"
-            includeMargin={true} 
-            bgColor={selectedColorScheme.bg} 
-            fgColor={selectedColorScheme.fg} 
+            includeMargin={true}
+            bgColor={selectedColorScheme.bg}
+            fgColor={selectedColorScheme.fg}
             className="block drop-shadow-sm"
           />
-          <QRCodeCanvas 
-            value={value} 
-            size={size} 
+          <QRCodeCanvas
+            value={value}
+            size={size}
             level="H"
-            includeMargin={true} 
-            bgColor={selectedColorScheme.bg} 
-            fgColor={selectedColorScheme.fg} 
+            includeMargin={true}
+            bgColor={selectedColorScheme.bg}
+            fgColor={selectedColorScheme.fg}
             className="hidden"
           />
         </div>
