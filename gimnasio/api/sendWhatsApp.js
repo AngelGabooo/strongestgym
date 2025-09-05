@@ -1,6 +1,7 @@
 const twilio = require('twilio');
 
 export default async function handler(req, res) {
+  // Solo permitir solicitudes POST
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Método no permitido' });
   }
@@ -15,7 +16,7 @@ export default async function handler(req, res) {
   // Validar formato del número de teléfono
   const phoneRegex = /^\+52\d{10}$/;
   if (!phoneRegex.test(phoneNumber)) {
-    return res.status(400).json({ error: 'El número de teléfono debe tener el formato +52 seguido de 10 dígitos' });
+    return res.status(400).json({ error: 'El número de teléfono debe tener el formato +52 seguido de 10 dígitos (ejemplo: +528144384806)' });
   }
 
   // Configuración de Twilio desde variables de entorno
@@ -24,23 +25,40 @@ export default async function handler(req, res) {
   const fromNumber = process.env.TWILIO_WHATSAPP_NUMBER;
 
   if (!accountSid || !authToken || !fromNumber) {
+    console.error('Configuración de Twilio incompleta:', {
+      accountSid: !!accountSid,
+      authToken: !!authToken,
+      fromNumber: !!fromNumber,
+    });
     return res.status(500).json({ error: 'Configuración de Twilio incompleta' });
   }
 
-  const client = twilio(accountSid, authToken);
-
   try {
+    const client = twilio(accountSid, authToken);
+    console.log('Enviando mensaje de WhatsApp:', {
+      from: fromNumber,
+      to: `whatsapp:${phoneNumber}`,
+      body: message.slice(0, 50) + '...',
+      mediaUrl: qrImage.slice(0, 50) + '...',
+    });
+
     // Enviar mensaje con Twilio
-    await client.messages.create({
+    const messageResponse = await client.messages.create({
       from: fromNumber,
       to: `whatsapp:${phoneNumber}`,
       body: message,
       mediaUrl: [qrImage],
     });
 
+    console.log('Mensaje enviado con éxito:', messageResponse.sid);
     return res.status(200).json({ success: true, message: `Código QR enviado a ${clientName}` });
   } catch (error) {
-    console.error('Error al enviar mensaje:', error);
-    return res.status(500).json({ error: `Error al enviar el código QR: ${error.message}` });
+    console.error('Error al enviar mensaje:', {
+      message: error.message,
+      code: error.code,
+      status: error.status,
+      moreInfo: error.moreInfo,
+    });
+    return res.status(500).json({ error: `Error al enviar el código QR: ${error.message}`, code: error.code });
   }
 }
