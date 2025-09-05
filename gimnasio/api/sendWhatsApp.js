@@ -1,7 +1,6 @@
 const twilio = require('twilio');
 
 export default async function handler(req, res) {
-  // Solo permitir solicitudes POST
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Método no permitido' });
   }
@@ -11,6 +10,12 @@ export default async function handler(req, res) {
   // Validar datos recibidos
   if (!phoneNumber || !clientName || !qrImage || !message) {
     return res.status(400).json({ error: 'Faltan datos requeridos: phoneNumber, clientName, qrImage, message' });
+  }
+
+  // Validar formato del número de teléfono
+  const phoneRegex = /^\+52\d{10}$/;
+  if (!phoneRegex.test(phoneNumber)) {
+    return res.status(400).json({ error: 'El número de teléfono debe tener el formato +52 seguido de 10 dígitos' });
   }
 
   // Configuración de Twilio desde variables de entorno
@@ -28,7 +33,7 @@ export default async function handler(req, res) {
     // Enviar mensaje con Twilio
     await client.messages.create({
       from: fromNumber,
-      to: `whatsapp:+52${phoneNumber}`,
+      to: `whatsapp:${phoneNumber}`,
       body: message,
       mediaUrl: [qrImage],
     });
@@ -38,4 +43,4 @@ export default async function handler(req, res) {
     console.error('Error al enviar mensaje:', error);
     return res.status(500).json({ error: `Error al enviar el código QR: ${error.message}` });
   }
-}   
+}
