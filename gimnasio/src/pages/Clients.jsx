@@ -91,10 +91,9 @@ const Clients = ({ className = '' }) => {
   };
 
   const handleViewQR = (client) => {
-  console.log('Cliente seleccionado para QR:', client);
-  setSelectedClient(client);
-  setShowQRModal(true);
-};
+    setSelectedClient(client);
+    setShowQRModal(true);
+  };
 
   const handleDeleteClient = async (clientId) => {
     try {
@@ -309,82 +308,67 @@ const Clients = ({ className = '' }) => {
       </div>
 
       <Modal 
-  isOpen={showQRModal} 
-  onClose={() => setShowQRModal(false)}
-  className="bg-black/80 backdrop-blur-xl"
->
-  {selectedClient && selectedClient.phone ? (
-    <div className="relative bg-gradient-to-br from-black via-gray-900 to-red-950 rounded-2xl border border-red-800/50 max-w-md w-full mx-auto shadow-xl shadow-red-900/20 overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-r from-red-600/10 to-transparent"></div>
-      
-      <button
-        onClick={() => setShowQRModal(false)}
-        className="absolute top-2 right-2 z-20 p-1.5 bg-gray-800/50 hover:bg-red-700/50 rounded-full border border-gray-600/50 text-gray-300 hover:text-white transition-all duration-200"
+        isOpen={showQRModal} 
+        onClose={() => setShowQRModal(false)}
+        className="bg-black/80 backdrop-blur-xl"
       >
-        <XMarkIcon className="w-4 h-4 sm:w-5 sm:h-5" />
-      </button>
+        {selectedClient && (
+          <div className="relative bg-gradient-to-br from-black via-gray-900 to-red-950 rounded-2xl border border-red-800/50 max-w-md w-full mx-auto shadow-xl shadow-red-900/20 overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-r from-red-600/10 to-transparent"></div>
+            
+            <button
+              onClick={() => setShowQRModal(false)}
+              className="absolute top-2 right-2 z-20 p-1.5 bg-gray-800/50 hover:bg-red-700/50 rounded-full border border-gray-600/50 text-gray-300 hover:text-white transition-all duration-200"
+            >
+              <XMarkIcon className="w-4 h-4 sm:w-5 sm:h-5" />
+            </button>
 
-      <div className="relative z-10 text-center p-4 sm:p-6">
-        <div className="flex items-center justify-center space-x-2 mb-4">
-          <div className="w-8 h-8 bg-gradient-to-r from-red-600 to-red-700 rounded-lg flex items-center justify-center">
-            <QrCodeIcon className="w-4 h-4 text-white animate-pulse" />
+            <div className="relative z-10 text-center p-4 sm:p-6">
+              <div className="flex items-center justify-center space-x-2 mb-4">
+                <div className="w-8 h-8 bg-gradient-to-r from-red-600 to-red-700 rounded-lg flex items-center justify-center">
+                  <QrCodeIcon className="w-4 h-4 text-white animate-pulse" />
+                </div>
+                <div>
+                  <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight">Código QR</h2>
+                  <p className="text-xs text-red-400">Gimnasio Strongest</p>
+                </div>
+              </div>
+
+              <div className="mb-4">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-red-600 to-red-700 rounded-full flex items-center justify-center border-3 border-red-600/30 mx-auto mb-3 shadow-md shadow-red-500/20 text-white text-2xl font-bold">
+                  {selectedClient.name.trim().charAt(0).toUpperCase() || '?'}
+                </div>
+                <h3 className="text-base sm:text-lg font-semibold text-white">{selectedClient.name}</h3>
+                <p className="text-xs sm:text-sm text-gray-300">{selectedClient.email}</p>
+                <p className="text-xs sm:text-sm text-gray-300 mt-1">PIN: <span className="font-semibold text-red-400">{selectedClient.pin}</span></p>
+              </div>
+
+              <div className="mb-4">
+                <span className={`inline-flex items-center px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium border shadow-sm ${
+                  selectedClient.status === 'active' ? 'text-green-400 bg-green-900/20 border-green-500/30' :
+                  selectedClient.status === 'expiring' ? 'text-yellow-400 bg-yellow-900/20 border-yellow-500/30' :
+                  'text-red-400 bg-red-900/20 border-red-500/30'
+                }`}>
+                  {selectedClient.status === 'active' ? 'Activo' :
+                   selectedClient.status === 'expiring' ? 'Por vencer' :
+                   'Vencido'}
+                </span>
+              </div>
+
+              <div className="mb-4">
+                <QRCodeDisplay 
+                  value={JSON.stringify({ qrCode: selectedClient.qrCode, pin: selectedClient.pin })} 
+                  size={140}
+                  withDownload={true}
+                  withWhatsApp={true}
+                  clientName={selectedClient.name}
+                  onShowAlert={showAlert}
+                />
+              </div>
+            </div>
           </div>
-          <div>
-            <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight">Código QR</h2>
-            <p className="text-xs text-red-400">Gimnasio Strongest</p>
-          </div>
-        </div>
-
-        <div className="mb-4">
-          <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-red-600 to-red-700 rounded-full flex items-center justify-center border-3 border-red-600/30 mx-auto mb-3 shadow-md shadow-red-500/20 text-white text-2xl font-bold">
-            {selectedClient.name.trim().charAt(0).toUpperCase() || '?'}
-          </div>
-          <h3 className="text-base sm:text-lg font-semibold text-white">{selectedClient.name}</h3>
-          <p className="text-xs sm:text-sm text-gray-300">{selectedClient.email}</p>
-          <p className="text-xs sm:text-sm text-gray-300 mt-1">Teléfono: <span className="font-semibold text-red-400">{selectedClient.phone}</span></p>
-          <p className="text-xs sm:text-sm text-gray-300 mt-1">PIN: <span className="font-semibold text-red-400">{selectedClient.pin}</span></p>
-          <p className="text-xs sm:text-sm text-yellow-400 mt-2">
-            Para recibir tu QR por WhatsApp, envía "join quick-fox" al +14155238886 desde tu WhatsApp.
-          </p>
-        </div>
-
-        <div className="mb-4">
-          <span className={`inline-flex items-center px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium border shadow-sm ${
-            selectedClient.status === 'active' ? 'text-green-400 bg-green-900/20 border-green-500/30' :
-            selectedClient.status === 'expiring' ? 'text-yellow-400 bg-yellow-900/20 border-yellow-500/30' :
-            'text-red-400 bg-red-900/20 border-red-500/30'
-          }`}>
-            {selectedClient.status === 'active' ? 'Activo' :
-             selectedClient.status === 'expiring' ? 'Por vencer' :
-             'Vencido'}
-          </span>
-        </div>
-
-        <div className="mb-4">
-          <QRCodeDisplay 
-            value={JSON.stringify({ qrCode: selectedClient.qrCode, pin: selectedClient.pin })} 
-            size={140}
-            withDownload={true}
-            withWhatsApp={true}
-            clientName={selectedClient.name}
-            phoneNumber={selectedClient.phone} // Agregar el prop phoneNumber
-            onShowAlert={showAlert}
-          />
-        </div>
-      </div>
-    </div>
-  ) : (
-    <div className="text-center p-4">
-      <p className="text-red-400">No se seleccionó un cliente válido o falta el número de teléfono</p>
-      <button
-        onClick={() => setShowQRModal(false)}
-        className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg"
-      >
-        Cerrar
-      </button>
-    </div>
-  )}
-</Modal>
+        )}
+      </Modal>
 
       <Modal
         isOpen={showRenewModal}
