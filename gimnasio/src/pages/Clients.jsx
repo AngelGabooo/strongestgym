@@ -13,7 +13,8 @@ import {
   SparklesIcon,
   ArrowLeftIcon,
   XMarkIcon,
-  ArrowPathIcon
+  ArrowPathIcon,
+  ShareIcon
 } from '@heroicons/react/24/outline';
 import { useClients } from '../hooks/useClients';
 import { format, addMonths, addDays } from 'date-fns';
@@ -42,8 +43,6 @@ const Clients = ({ className = '' }) => {
       const timer = setTimeout(() => {
         setAlertConfig(prev => ({ ...prev, isOpen: false }));
       }, 15000); // 15 segundos
-
-      // Limpiar el temporizador al cerrar manualmente o desmontar
       return () => clearTimeout(timer);
     }
   };
@@ -52,15 +51,58 @@ const Clients = ({ className = '' }) => {
     setAlertConfig({ ...alertConfig, isOpen: false });
   };
 
+  const sendQRToClient = async (client) => {
+    try {
+      const qrValue = JSON.stringify({ qrCode: client.qrCode, pin: client.pin });
+      const qrImageUrl = `/api/generate-qr?value=${encodeURIComponent(qrValue)}`;
+
+      const message = `¡Hola ${client.name}! 
+
+Te comparto tu QR para que des asistencia al ingresar al gimnasio.
+Tu QR contiene tu fecha de caducidad de tu mensualidad.
+Al pasar la fecha de vencimiento se te cobrará $30 si aún sigues ingresando con fecha vencida.
+Recuerda que es tu responsabilidad levantar todos tus instrumentos usados, recuerda que alguien más quiere usar lo que tú tienes en uso.
+Así como contar con una toalla para limpiar dónde has estado.
+
+¡Te esperamos para que sigas alcanzando tus metas en Gimnasio Strongest Villa Comaltitlán!`;
+
+      const response = await fetch('/api/send-whatsapp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phoneNumber: `+52${client.phone}`,
+          clientName: client.name,
+          qrImage: qrImageUrl,
+          message,
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Error al enviar');
+      }
+
+      showAlert('success', `Código QR enviado a ${client.name} por WhatsApp`);
+    } catch (error) {
+      console.error('Error enviando QR:', error);
+      showAlert('error', `Error al enviar QR a ${client.name}: ${error.message}`);
+    }
+  };
+
   const handleSaveClient = async (clientData) => {
     try {
+      let savedClient;
       if (editingClient) {
-        const updatedClient = await editClient(editingClient.id, clientData);
+        savedClient = await editClient(editingClient.id, clientData);
         showAlert('success', 'Cliente actualizado exitosamente');
       } else {
-        const newClient = await addClient(clientData);
+        savedClient = await addClient(clientData);
         showAlert('success', 'Cliente registrado exitosamente');
       }
+
+      // Envío automático del QR al teléfono del cliente
+      await sendQRToClient(savedClient);
+
       setShowForm(false);
       setEditingClient(null);
     } catch (err) {
@@ -68,11 +110,27 @@ const Clients = ({ className = '' }) => {
     }
   };
 
+  const handleSendToAllClients = async () => {
+    if (!confirm('¿Estás seguro de enviar el QR por WhatsApp a TODOS los clientes? Esto podría tomar tiempo y generar costos en Twilio.')) {
+      return;
+    }
+
+    try {
+      for (const client of clients) {
+        await sendQRToClient(client);
+        // Agregar un pequeño delay para evitar rate limits de Twilio
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+      showAlert('success', 'QR enviados a todos los clientes exitosamente');
+    } catch (error) {
+      showAlert('error', `Error en envío masivo: ${error.message}`);
+    }
+  };
+
   const handleEditClient = async (client) => {
     try {
       console.log('Intentando editar cliente con ID:', client.id);
       await refreshClients();
-      // Verificar si el cliente existe en Firestore
       const clientFromFirestore = await findClientByEmail(client.email);
       if (!clientFromFirestore || clientFromFirestore.id !== client.id) {
         throw new Error(`El cliente con ID ${client.id} no existe en Firestore o no coincide con el email ${client.email}`);
@@ -249,6 +307,15 @@ const Clients = ({ className = '' }) => {
                     </>
                   )}
                 </button>
+                {!showForm && (
+                  <button
+                    onClick={handleSendToAllClients}
+                    className="px-4 py-2 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white rounded-lg shadow-lg shadow-green-500/25 hover:shadow-green-500/40 transition-all duration-200 flex items-center space-x-2"
+                  >
+                    <ShareIcon className="w-5 h-5" />
+                    <span>Enviar QR a Todos</span>
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -362,6 +429,7 @@ const Clients = ({ className = '' }) => {
                   withDownload={true}
                   withWhatsApp={true}
                   clientName={selectedClient.name}
+                  phone={selectedClient.phone} // Pasa el teléfono para QRCodeDisplay
                   onShowAlert={showAlert}
                 />
               </div>
@@ -417,7 +485,7 @@ const Clients = ({ className = '' }) => {
         actionButton={alertConfig.actionButton}
       />
     </main> 
-  );  
+  );
 };
 
 export default Clients;
