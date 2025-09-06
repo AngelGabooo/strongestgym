@@ -1,46 +1,35 @@
-const shareOnWhatsApp = async () => {
-  const phoneNumber = "8144384806"; // Sin +52, lo agregamos después. Cámbialo si es dinámico.
-  const clientNameFormatted = clientName || "Cliente";
-  
-  // Mensaje de texto (el mismo que tienes)
-  const message = `¡Hola ${clientNameFormatted}! 
+const twilio = require('twilio');
 
-Te comparto tu QR para que des asistencia al ingresar al gimnasio.
-Tu QR contiene tu fecha de caducidad de tu mensualidad.
-Al pasar la fecha de vencimiento se te cobrará $30 si aún sigues ingresando con fecha vencida.
-Recuerda que es tu responsabilidad levantar todos tus instrumentos usados, recuerda que alguien más quiere usar lo que tú tienes en uso.
-Así como contar con una toalla para limpiar dónde has estado.
+export default async function handler(req, res) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Método no permitido' });
+  }
 
-¡Te esperamos para que sigas alcanzando tus metas en Gimnasio Strongest Villa Comaltitlán!`;
-  
+  const { phoneNumber, clientName, qrImage, message } = req.body;
+
+  if (!phoneNumber || !qrImage || !message) {
+    return res.status(400).json({ error: 'Faltan parámetros requeridos' });
+  }
+
+  const client = twilio(
+    process.env.TWILIO_ACCOUNT_SID,
+    process.env.TWILIO_AUTH_TOKEN
+  );
+
   try {
-    // Genera la URL pública del QR usando la nueva API route
-    const qrValue = encodeURIComponent(value); // value es el contenido del QR (JSON.stringify({ qrCode, pin }))
-    const qrImageUrl = `/api/generate-qr?value=${qrValue}`;
+    // Convertir la URL relativa a absoluta
+    const absoluteQrImageUrl = `${req.headers.origin}${qrImage}`;
     
-    // Llama a tu API para enviar con Twilio
-    const response = await fetch('/api/send-whatsapp', { // Cambia '/api/send-whatsapp' por tu endpoint real
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        phoneNumber: `+52${phoneNumber}`, // Formato completo +52...
-        clientName: clientNameFormatted,
-        qrImage: qrImageUrl, // URL pública que Twilio fetchará
-        message,
-      }),
+    const twilioMessage = await client.messages.create({
+      from: process.env.TWILIO_WHATSAPP_NUMBER, // ej: whatsapp:+14155238886
+      to: phoneNumber, // ej: whatsapp:+528144384826
+      body: message,
+      mediaUrl: [absoluteQrImageUrl], // URL absoluta para Twilio
     });
 
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.error || 'Error al enviar');
-    }
-
-    onShowAlert?.('success', `Código QR enviado a ${clientNameFormatted} por WhatsApp desde Twilio (${selectedColorScheme.name})`);
+    res.status(200).json({ success: true, messageSid: twilioMessage.sid });
   } catch (error) {
-    console.error('Error al enviar por Twilio:', error);
-    onShowAlert?.('error', `Error al enviar el código QR por WhatsApp: ${error.message}`);
+    console.error('Error enviando mensaje con Twilio:', error);
+    res.status(500).json({ error: `Error al enviar mensaje: ${error.message}` });
   }
-};
+}
