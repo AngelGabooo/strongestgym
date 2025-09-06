@@ -117,7 +117,7 @@ Así como contar con una toalla para limpiar dónde has estado.
       const qrValue = encodeURIComponent(value);
       const qrImageUrl = `/api/generate-qr?value=${qrValue}`;
       
-      const response = await fetch('/pages/api/send-whatsapp', {
+      const response = await fetch('/api/send-whatsapp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
