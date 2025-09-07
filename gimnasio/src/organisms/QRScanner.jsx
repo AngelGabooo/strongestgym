@@ -39,10 +39,12 @@ const QRScanner = ({ onScan, className = '', continuousMode = true }) => {
     actionButton: null
   });
   const [lastScannedCode, setLastScannedCode] = useState('');
+  const [useScanner, setUseScanner] = useState(false); // Nuevo estado para alternar entre cámara y lector
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const streamRef = useRef(null);
   const animationFrameRef = useRef(null);
+  const scannerInputRef = useRef(null); // Referencia para el campo de texto del lector
   const navigate = useNavigate();
   const { clients, loading, refreshClients, getTodayAccessRecords, registerAccess } = useClients();
 
@@ -57,20 +59,23 @@ const QRScanner = ({ onScan, className = '', continuousMode = true }) => {
     };
   }, [loading]);
 
+  // Detectar disponibilidad de la cámara
   const checkCameraAvailability = async () => {
     try {
       const devices = await navigator.mediaDevices.enumerateDevices();
       const videoDevices = devices.filter(device => device.kind === 'videoinput');
       setHasCamera(videoDevices.length > 0);
       if (!videoDevices.length) {
-        setError('No se detectaron cámaras. Usa el PIN para buscar.');
+        setError('No se detectaron cámaras. Usa el lector Bwhs25L o ingresa el PIN manualmente.');
+        setUseScanner(true); // Cambiar al modo lector si no hay cámara
       } else {
         startCamera();
       }
     } catch (err) {
       console.error('Error verificando cámara:', err);
       setHasCamera(false);
-      setError('Error al verificar cámaras. Usa el PIN para buscar.');
+      setError('Error al verificar cámaras. Usa el lector Bwhs25L o ingresa el PIN manualmente.');
+      setUseScanner(true); // Cambiar al modo lector si hay error
     }
   };
 
@@ -102,19 +107,21 @@ const QRScanner = ({ onScan, className = '', continuousMode = true }) => {
             animationFrameRef.current = requestAnimationFrame(scanQRCode);
           }).catch(err => {
             console.error('Error al reproducir el video:', err);
-            setError('No se pudo reproducir el video. Verifica los permisos de la cámara.');
+            setError('No se pudo reproducir el video. Usa el lector Bwhs25L o verifica los permisos de la cámara.');
             setIsScanning(false);
             setScanStatus('');
             stopCamera();
+            setUseScanner(true); // Cambiar al modo lector si falla la cámara
           });
         };
       }
     } catch (err) {
       console.error('Error accediendo a la cámara:', err);
-      setError('No se pudo acceder a la cámara. Verifica los permisos e inténtalo de nuevo.');
+      setError('No se pudo acceder a la cámara. Usa el lector Bwhs25L o verifica los permisos.');
       setIsScanning(false);
       setScanStatus('');
       stopCamera();
+      setUseScanner(true); // Cambiar al modo lector si hay error
     }
   };
 
@@ -202,6 +209,36 @@ const QRScanner = ({ onScan, className = '', continuousMode = true }) => {
     }
   };
 
+  // Manejar entrada del lector Bwhs25L
+  const handleScannerInput = (e) => {
+    e.preventDefault();
+    const scannedValue = scannerInputRef.current.value.trim();
+    if (scannedValue) {
+      try {
+        let qrData;
+        try {
+          qrData = JSON.parse(scannedValue);
+        } catch (e) {
+          qrData = { pin: scannedValue };
+        }
+
+        if (isValidQRFormat(qrData)) {
+          setScanStatus('Código QR escaneado con lector. Buscando cliente...');
+          stopCamera();
+          fetchClientData(qrData);
+          scannerInputRef.current.value = ''; // Limpiar el campo
+        } else {
+          throw new Error('Formato de QR inválido');
+        }
+      } catch (err) {
+        console.error('Error procesando QR del lector:', err);
+        setError('Código QR inválido desde el lector. Intenta de nuevo o usa el PIN manualmente.');
+        scannerInputRef.current.value = ''; // Limpiar el campo
+        resetScanner();
+      }
+    }
+  };
+
   const fetchClientData = async (searchData) => {
     try {
       const auth = getAuth();
@@ -250,7 +287,7 @@ const QRScanner = ({ onScan, className = '', continuousMode = true }) => {
       }
     } catch (err) {
       console.error('Error buscando cliente:', err);
-      setError(`Error: ${err.message}. Verifica el QR o PIN o intenta de nuevo.`);
+      setError(`Error: ${err.message}. Verifica el QR, PIN o lector e intenta de nuevo.`);
       resetScanner();
     }
   };
@@ -270,11 +307,13 @@ const QRScanner = ({ onScan, className = '', continuousMode = true }) => {
     setScannedData(null);
     setError(null);
     setPinInput('');
-    setScanStatus('Escaneando... Centra el código QR.');
+    setScanStatus(useScanner ? 'Esperando escaneo con lector Bwhs25L...' : 'Escaneando... Centra el código QR.');
     setLastScannedCode('');
     setAlertModal({ isOpen: false, type: 'info', message: '', actionButton: null });
-    if (hasCamera && !loading) {
+    if (hasCamera && !useScanner && !loading) {
       setTimeout(startCamera, 500);
+    } else if (useScanner && scannerInputRef.current) {
+      scannerInputRef.current.focus(); // Enfocar el campo del lector
     }
   };
 
@@ -289,7 +328,7 @@ const QRScanner = ({ onScan, className = '', continuousMode = true }) => {
           onClick: () => navigate(`/clients?edit=${client.id}`)
         }
       });
-      setTimeout(resetScanner, 120000); // 2 minutes (120,000ms) for expired subscription alert
+      setTimeout(resetScanner, 120000); // 2 minutos para alerta de suscripción vencida
       return;
     }
 
@@ -306,7 +345,7 @@ const QRScanner = ({ onScan, className = '', continuousMode = true }) => {
           onClick: () => navigate(`/clients?edit=${client.id}`)
         } : null
       });
-      setTimeout(resetScanner, 2000); // 2 seconds (2,000ms) for expiring or successful entry
+      setTimeout(resetScanner, 2000);
     } catch (err) {
       setAlertModal({
         isOpen: true,
@@ -314,7 +353,7 @@ const QRScanner = ({ onScan, className = '', continuousMode = true }) => {
         message: `Error al registrar entrada: ${err.message}`,
         actionButton: null
       });
-      setTimeout(resetScanner, 2000); // 2 seconds for error alert
+      setTimeout(resetScanner, 2000);
     }
   };
 
@@ -327,7 +366,7 @@ const QRScanner = ({ onScan, className = '', continuousMode = true }) => {
         message: `Salida registrada exitosamente. Tiempo activo: ${accessData.activeTime || 0} minutos`,
         actionButton: null
       });
-      setTimeout(resetScanner, 1000); // 1 second for exit success alert
+      setTimeout(resetScanner, 1000);
     } catch (err) {
       setAlertModal({
         isOpen: true,
@@ -335,7 +374,7 @@ const QRScanner = ({ onScan, className = '', continuousMode = true }) => {
         message: `Error al registrar salida: ${err.message}`,
         actionButton: null
       });
-      setTimeout(resetScanner, 2000); // 2 seconds for error alert
+      setTimeout(resetScanner, 2000);
     }
   };
 
@@ -367,13 +406,41 @@ const QRScanner = ({ onScan, className = '', continuousMode = true }) => {
     return status === 'active' ? 'Activo' : status === 'expiring' ? 'Por Vencer' : 'Inactivo';
   };
 
+  // Alternar entre modo cámara y lector
+  const toggleScannerMode = () => {
+    if (useScanner) {
+      setUseScanner(false);
+      if (hasCamera) {
+        startCamera();
+      }
+    } else {
+      setUseScanner(true);
+      stopCamera();
+      if (scannerInputRef.current) {
+        scannerInputRef.current.focus();
+      }
+      setScanStatus('Esperando escaneo con lector Bwhs25L...');
+    }
+  };
+
   return (
     <div className={className}>
       <div className="bg-black backdrop-blur-xl rounded-3xl border border-red-900/20 p-4 sm:p-6 shadow-2xl">
         {!scannedData ? (
           <div className="border-2 border-dashed border-red-900/30 rounded-xl p-4 sm:p-8 bg-gradient-to-br from-red-950/10 via-black/30 to-red-950/10 backdrop-blur-sm">
             <div className="flex flex-col gap-6">
-              {hasCamera && !loading && (
+              {/* Botón para alternar entre cámara y lector */}
+              <div className="text-center">
+                <button
+                  onClick={toggleScannerMode}
+                  className="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-xl font-semibold transition-all duration-200 shadow-lg shadow-blue-500/25"
+                >
+                  {useScanner ? 'Usar Cámara' : 'Usar Lector Bwhs25L'}
+                </button>
+              </div>
+
+              {/* Modo cámara */}
+              {hasCamera && !useScanner && !loading && (
                 <div className="text-center">
                   <div className="relative mx-auto w-full max-w-md aspect-[4/3] bg-gradient-to-br from-black via-gray-900 to-black rounded-lg overflow-hidden mb-4 border border-red-900/20">
                     <video 
@@ -405,11 +472,38 @@ const QRScanner = ({ onScan, className = '', continuousMode = true }) => {
                   </button>
                 </div>
               )}
+
+              {/* Modo lector Bwhs25L */}
+              {useScanner && (
+                <div className="text-center">
+                  <p className="text-gray-300 mb-4 text-base sm:text-lg">
+                    {scanStatus || 'Escanea un código QR con el lector Bwhs25L.'}
+                  </p>
+                  <form onSubmit={handleScannerInput}>
+                    <input
+                      ref={scannerInputRef}
+                      type="text"
+                      placeholder="Escanea con el lector Bwhs25L"
+                      className="block w-full max-w-sm mx-auto pl-12 pr-4 py-3 border border-red-900/30 bg-gradient-to-r from-red-950/20 via-black/40 to-red-950/20 text-white placeholder-gray-400 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500/50 transition-all duration-200 backdrop-blur-sm"
+                      autoFocus
+                      onChange={(e) => {
+                        if (e.target.value.includes('\n') || e.target.value.includes('\r')) {
+                          handleScannerInput(e); // Detectar "Enter" del lector
+                        }
+                      }}
+                    />
+                  </form>
+                </div>
+              )}
+
+              {/* Carga de clientes */}
               {loading && (
                 <div className="text-center">
                   <p className="text-gray-300 mb-4 text-base sm:text-lg">Cargando clientes...</p>
                 </div>
               )}
+
+              {/* Entrada manual por PIN */}
               <div className="text-center">
                 <div className="mx-auto w-24 h-24 sm:w-32 sm:h-32 bg-gradient-to-br from-red-950/20 via-black/40 to-red-950/20 rounded-xl flex items-center justify-center mb-4 sm:mb-6 border border-red-900/20">
                   <QrCodeIcon className="w-12 h-12 sm:w-16 sm:h-16 text-red-500" />
