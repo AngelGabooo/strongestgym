@@ -186,7 +186,7 @@ const MaintenancePage = () => {
         <div className="text-gray-400 text-sm sm:text-base space-y-2">
           <div className="bg-black/30 backdrop-blur-sm rounded-2xl p-4 border border-gray-800/50">
             <p className="font-bold text-white mb-1">© 2025 STRONGEST Gym - Villa Comaltitlán</p>
-            <p className="text-gray-300">Desarrollado por <span className="text-red-400 font-semibold">Biome </span> - Angel Gabriel García Samayoa</p>
+            <p className="text-gray-300">Desarrollado por <span className="text-red-400 font-semibold">NetSpark </span> - Angel Gabriel García Samayoa</p>
             <p className="mt-2 text-xs">Última actualización: {new Date().toLocaleString('es-ES', {
               year: 'numeric',
               month: 'long',

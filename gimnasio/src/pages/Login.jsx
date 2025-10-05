@@ -342,7 +342,7 @@ const Login = ({ className = '', ...props }) => {
 
           <div className="mt-8 pt-6 border-t border-gray-700/50">
             <p className="text-center text-xs text-gray-400">
-              © 2025 Strongest Gym - Biomey - Angel Gabriel.{' '}
+              © 2025 Strongest Gym - NetSpark - Angel Gabriel.{' '}
               <button
                 onClick={toggleTermsModal}
                 className="text-red-400 hover:text-red-300 underline transition-colors duration-200"

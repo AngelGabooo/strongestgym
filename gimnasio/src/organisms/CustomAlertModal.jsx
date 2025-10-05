@@ -103,7 +103,7 @@ const CustomAlertModal = ({ isOpen, onClose, type = 'info', message, actionButto
           <p className="text-xs text-gray-400">
             Página desarrollada por{' '}
             <span className="bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent font-semibold">
-              Biomey - Angel Gabriel
+              NetSpark - Angel Gabriel
             </span>
           </p>
         </div>

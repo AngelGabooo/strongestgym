@@ -376,7 +376,7 @@ const Settings = ({ className = '', ...props }) => {
           <div className="bg-gradient-to-br from-red-950/40 to-black/40 rounded-2xl p-6 border border-red-500/20 mb-6">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h3 className="text-xl font-semibold bg-gradient-to-r from-white to-red-200 bg-clip-text text-transparent">Biomey - Soluciones Tecnológicas</h3>
+                <h3 className="text-xl font-semibold bg-gradient-to-r from-white to-red-200 bg-clip-text text-transparent">NetSpark - Soluciones Tecnológicas</h3>
                 <p className="text-red-200/70">Angel Gabriel García Samayoa - Fundador</p>
               </div>
               <div className="text-right">
@@ -419,7 +419,7 @@ const Settings = ({ className = '', ...props }) => {
 
           <div className="text-center pt-6 border-t border-red-500/20">
             <p className="text-xs text-red-200/60 mb-2">
-              © 2025 Strongest Gym by Biomey. Todos los derechos reservados.
+              © 2025 Strongest Gym NetSpark. Todos los derechos reservados.
             </p>
             <button
               onClick={toggleInfoModal}
@@ -518,7 +518,7 @@ const Settings = ({ className = '', ...props }) => {
           <div className="bg-gradient-to-br from-black via-gray-900 to-red-950 rounded-3xl shadow-2xl border border-red-500/50 p-8 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-3xl font-bold bg-gradient-to-r from-red-400 to-red-600 bg-clip-text text-transparent">
-                Biomey - Innovación Tecnológica
+                NetSpark - Innovación Tecnológica
               </h2>
               <button
                 onClick={toggleInfoModal}
@@ -532,7 +532,7 @@ const Settings = ({ className = '', ...props }) => {
               <div className="bg-gradient-to-r from-red-600/10 to-red-700/10 rounded-2xl p-6 border border-red-500/20">
                 <h3 className="text-xl font-semibold text-white mb-3">Acerca de la Empresa</h3>
                 <p className="text-red-100/90 text-sm leading-relaxed mb-4">
-                  <strong>Biomey</strong> es una empresa líder en el desarrollo de soluciones tecnológicas para la gestión 
+                  <strong>NetSpark</strong> es una empresa líder en el desarrollo de soluciones tecnológicas para la gestión 
                   de gimnasios y centros deportivos. Fundada por <strong>Angel Gabriel García Samayoa</strong>, nos especializamos 
                   en crear sistemas intuitivos, seguros y eficientes que transforman la manera en que los gimnasios operan.
                 </p>
