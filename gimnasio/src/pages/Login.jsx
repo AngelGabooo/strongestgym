@@ -278,7 +278,7 @@ const Login = ({ className = '', ...props }) => {
                     onChange={(e) => setEmail(e.target.value)}
                     required
                     className="block w-full pl-10 pr-3 py-3 border border-gray-600/50 bg-gray-900/50 text-white placeholder-gray-400 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200 backdrop-blur-sm"
-                    placeholder="admin@strongestgym.com"
+                    placeholder="Correo"
                   />
                 </div>
               </div>
@@ -299,7 +299,7 @@ const Login = ({ className = '', ...props }) => {
                     onChange={(e) => setPassword(e.target.value)}
                     required
                     className="block w-full pl-10 pr-3 py-3 border border-gray-600/50 bg-gray-900/50 text-white placeholder-gray-400 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200 backdrop-blur-sm"
-                    placeholder="••••••••"
+                    placeholder="Contraseña"
                   />
                 </div>
               </div>
