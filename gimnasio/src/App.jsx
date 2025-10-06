@@ -8,7 +8,7 @@ import History from './pages/History';
 import Reports from './pages/Reports';
 import Settings from './pages/Settings';
 import PrivateRoute from './components/PrivateRoute';
-import MaintenancePage from './pages/MaintenancePage'; // Importar la página de mantenimiento
+import MaintenancePage from './pages/MaintenancePage'; 
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
